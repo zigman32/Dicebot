@@ -241,6 +241,7 @@ class Dice {
             modlevel = [20,0,40,30,10];//First value is odds of no modifiers, second is level 1 etc
             modnum = [40,30,20,10];
             iter = 6;
+            ultmutatechance = 0.03;
         }
         if(dicetype.includes("emoji4"))
         {
@@ -252,8 +253,9 @@ class Dice {
             modlevel = [0,5,5,20,80];//YEAH THEY DON'T ADD UP TO 100 DEAL WITH IT
             modnum = [20,25,30,35];
             iter = 9;
+            ultmutatechance = 0.06;
         }
-        if(dicetype.includes("rare0"))
+        if(dicetype.includes("rare0"))//common
         {
             SIDES = 6;
             DEFAULTSCORE = 18;
@@ -266,7 +268,7 @@ class Dice {
             modnum = [100,0,0,0];
             iter = 2;
         }
-        if(dicetype.includes("rare1"))
+        if(dicetype.includes("rare1"))//rare
         {
             SIDES = 6;
             DEFAULTSCORE = 22;
@@ -290,85 +292,76 @@ class Dice {
             MINSCORE = 2;
             modlevel = [80,15,5,0,0];
             modnum = [95,5,0,0];
-            iter = 3;
+            iter = 2;
         }
-        if(dicetype.includes("rare2"))
+        if(dicetype.includes("rare2"))//super rare (100 favor)
         {
             SIDES = 6;
-            DEFAULTSCORE = 22;
+            DEFAULTSCORE = 26;
             if(Math.random() < 0.01)
             {
                 SIDES--;
-                DEFAULTSCORE-=4;
+                DEFAULTSCORE-=5;
             }
             if(Math.random() < 0.01)
             {
                 SIDES++;
-                DEFAULTSCORE+=4;
+                DEFAULTSCORE+=5;
             }
-            BONUSRANGE = 6;
+            BONUSRANGE = 8;
             NUMTYPES = 2;
             if(Math.random() < 0.2)
                 NUMTYPES++;
             if(Math.random() < 0.1)
                 NUMTYPES--;
             
-            MINSCORE = 2;
-            modlevel = [80,15,5,0,0];
-            modnum = [95,5,0,0];
-            iter = 3;
+            MINSCORE = 3;
+            modlevel = [50,20,20,10,0];
+            modnum = [80,10,10,0];
+            iter = 2;
         }
-        if(dicetype.includes("rare3"))
+        if(dicetype.includes("rare3"))//ultra rare (300/500 favor)
         {
             SIDES = 6;
-            DEFAULTSCORE = 22;
+            DEFAULTSCORE = 30;
             if(Math.random() < 0.01)
             {
                 SIDES--;
-                DEFAULTSCORE-=4;
+                DEFAULTSCORE-=6;
             }
             if(Math.random() < 0.01)
             {
                 SIDES++;
-                DEFAULTSCORE+=4;
+                DEFAULTSCORE+=6;
             }
-            BONUSRANGE = 6;
+            BONUSRANGE = 10;
             NUMTYPES = 2;
             if(Math.random() < 0.2)
                 NUMTYPES++;
             if(Math.random() < 0.1)
                 NUMTYPES--;
             
-            MINSCORE = 2;
-            modlevel = [80,15,5,0,0];
-            modnum = [95,5,0,0];
-            iter = 3;
+            MINSCORE = 4;
+            modlevel = [20,20,20,20,20];
+            modnum = [60,20,10,10];
+            iter = 2;
         }
-        if(dicetype.includes("rare4"))
+        if(dicetype.includes("rare4"))//RADIANT (??? favor)
         {
             SIDES = 6;
-            DEFAULTSCORE = 22;
-            if(Math.random() < 0.01)
-            {
-                SIDES--;
-                DEFAULTSCORE-=4;
-            }
-            if(Math.random() < 0.01)
-            {
-                SIDES++;
-                DEFAULTSCORE+=4;
-            }
-            BONUSRANGE = 6;
+            DEFAULTSCORE = 45;
+            BONUSRANGE = 5;
             NUMTYPES = 2;
             if(Math.random() < 0.2)
                 NUMTYPES++;
             if(Math.random() < 0.1)
                 NUMTYPES--;
             
-            MINSCORE = 2;
-            modlevel = [80,15,5,0,0];
-            modnum = [95,5,0,0];
-            iter = 3;
+            MINSCORE = 6;
+            modlevel = [0,0,25,25,50];
+            modnum = [25,25,25,25];
+            iter = 2;
+            ultmutatechance = 0.05;
         }
         
             
@@ -395,7 +388,7 @@ class Dice {
         this.assignFacesScore(score,SIDES,MINSCORE,iter);
         this.assignFacesType(NUMTYPES,SIDES);
         this.assignMods(modlevel,modnum,SIDES);
-        this.finalMutations(dicetype,SIDES);
+        this.finalMutations(dicetype,ultmutatechance,SIDES);
         
         
         this.size = SIDES;
@@ -494,26 +487,16 @@ class Dice {
         }
     }
 
-    finalMutations(dtype,SIDES){
+    finalMutations(dtype,ultmutatechance,SIDES){
         for(var i = 0;i<SIDES;i++)
         {
-            this.removeDuplicateModifiers(this.faces[i]);
-            if(dtype.includes("emoji3"))
-            {        
-                if(Math.random()<0.03)
-                {
-                    this.faces[i].value = Math.max(this.faces[i].value-5,1);
-                    this.faces[i].type = "ultimate";
-                }
+            this.removeDuplicateModifiers(this.faces[i]);     
+            if(Math.random()<ultmutatechance)
+            {
+                this.faces[i].value = Math.max(this.faces[i].value-5,1);
+                this.faces[i].type = "ultimate";
             }
-            if(dtype.includes("emoji4"))
-            {   if(Math.random()<0.06)
-                {
-                    
-                    this.faces[i].value = Math.max(this.faces[i].value-4,1);
-                    this.faces[i].type = "ultimate";
-                }
-            }
+            
             
         }
     }

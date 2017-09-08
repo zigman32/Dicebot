@@ -122,7 +122,7 @@ class ShopCommand extends commando.Command {
 
             //-----------end basic dice box code
         }));
-        titems.push(new shopitem("Basic Dice Pack",200,"(STILL BEING TESTED) Gives you a choice of 3 basic dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+        titems.push(new shopitem("Basic Dice Pack",200,"Gives you a choice of 3 basic dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
         
             //-----------basic dice pack code---------------
 
@@ -156,7 +156,7 @@ class ShopCommand extends commando.Command {
                 });
                 if(responses && responses.size === 1) value = responses.first().content; else{
                     num = Dice.rint(dnum);
-                    resultstring += "Time ran out, choosing dice number "+num+"\n";
+                    resultstring += "Time ran out, choosing dice number "+(num+1)+"\n";
                     console.log("Time ran out");
                     break;
                 }
@@ -181,6 +181,224 @@ class ShopCommand extends commando.Command {
 
             //-----------end basic dice pack code
         }));
+
+        titems.push(new shopitem("Beginer\'s Dice Pack",400,"Gives you a choice of 3 common dice with a chance of a rare dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+            
+                //-----------Beginer's dice pack code---------------
+    
+                const dnum = 3;
+                var darr = [];
+                
+                var resultstring = "";
+
+                var rareodds = 0.1;
+
+                resultstring+= "You open your dice pack, and it contains the following dice: \n\n";
+                for(var i = 0; i < dnum; i++)
+                {
+                    var dice = new Dice();
+                    if(Math.random() < rareodds)
+                    {
+                        dice.generate("rare1");
+                        resultstring+= (i+1)+": "+dice.read()+"(:sparkles:Rare Dice!:sparkles:)\n";
+                    }else
+                    {
+                        dice.generate("rare0");
+                        resultstring+= (i+1)+": "+dice.read()+"\n";
+                    }
+                    darr.push(dice);
+                }
+                resultstring+= "\n type in a number within 1 minute to choose a dice. Otherise one will be chosen at random.\n"
+                message.channel.sendMessage(resultstring);
+    
+                resultstring = "";
+                var value;
+                var num;
+                var again;
+                
+                
+                do{
+                    again = false;
+                    console.log("Begining of loop");
+                    const responses = await message.channel.awaitMessages(msg2 => msg2.author.id === message.author.id, {
+                        maxMatches: 1,
+                        time: 60000//60 seconds
+                    });
+                    if(responses && responses.size === 1) value = responses.first().content; else{
+                        num = Dice.rint(dnum);
+                        resultstring += "Time ran out, choosing dice number "+(num+1)+"\n";
+                        console.log("Time ran out");
+                        break;
+                    }
+                    var num = parseInt(value)
+                    if(!isNaN(num) && num > 0 && num <= dnum){ 
+                        
+                        console.log("We did good today");
+                        num--;
+                        
+                    }else{
+                        message.channel.sendMessage("Invalid choice, please try again.");
+                        again = true;
+                        console.log("Let's go again");
+                    }
+                }while(again);
+                console.log("Out of the loop!");
+    
+                message.channel.sendMessage(resultstring+"Dice number "+(num+1)+" ("+darr[num].read()+") was added to your dicebag!");
+    
+                misc.addToDicebag(darr[num],id,ch);
+    
+    
+                //-----------end basic dice pack code
+            },50));
+
+            titems.push(new shopitem("Intermidiate Dice Pack",1000,"Gives you a choice of 3 common dice with a increased chance of a rare dice and a chance at super rare dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+                
+                    //-----------intermidiate dice pack code---------------
+        
+                    const dnum = 3;
+                    var darr = [];
+                    
+                    var resultstring = "";
+                    var superrareodds = 0.1;
+                    var rareodds = 0.3;
+    
+                    resultstring+= "You open your dice pack, and it contains the following dice: \n\n";
+                    for(var i = 0; i < dnum; i++)
+                    {
+                        var dice = new Dice();
+                        if(Math.random() < superrareodds)
+                        {
+                            dice.generate("rare2");
+                            resultstring+= (i+1)+": "+dice.read()+"(:sparkling_heart::sparkles: SUPER RARE DICE! :sparkles::sparkling_heart:)\n";
+                        }else if(Math.random() < rareodds)
+                        {
+                            dice.generate("rare1");
+                            resultstring+= (i+1)+": "+dice.read()+"(:sparkles:Rare Dice!:sparkles:)\n";
+                        }else
+                        {
+                            dice.generate("rare0");
+                            resultstring+= (i+1)+": "+dice.read()+"\n";
+                        }
+                        darr.push(dice);
+                    }
+                    resultstring+= "\n type in a number within 1 minute to choose a dice. Otherise one will be chosen at random.\n"
+                    message.channel.sendMessage(resultstring);
+        
+                    resultstring = "";
+                    var value;
+                    var num;
+                    var again;
+                    
+                    
+                    do{
+                        again = false;
+                        console.log("Begining of loop");
+                        const responses = await message.channel.awaitMessages(msg2 => msg2.author.id === message.author.id, {
+                            maxMatches: 1,
+                            time: 60000//60 seconds
+                        });
+                        if(responses && responses.size === 1) value = responses.first().content; else{
+                            num = Dice.rint(dnum);
+                            resultstring += "Time ran out, choosing dice number "+(num+1)+"\n";
+                            console.log("Time ran out");
+                            break;
+                        }
+                        var num = parseInt(value)
+                        if(!isNaN(num) && num > 0 && num <= dnum){ 
+                            
+                            console.log("We did good today");
+                            num--;
+                            
+                        }else{
+                            message.channel.sendMessage("Invalid choice, please try again.");
+                            again = true;
+                            console.log("Let's go again");
+                        }
+                    }while(again);
+                    console.log("Out of the loop!");
+        
+                    message.channel.sendMessage(resultstring+"Dice number "+(num+1)+" ("+darr[num].read()+") was added to your dicebag!");
+        
+                    misc.addToDicebag(darr[num],id,ch);
+        
+        
+                    //-----------end basic dice pack code
+                },200));
+
+                titems.push(new shopitem("Advanced Dice Pack",1000,"Gives you a choice of 3 rare dice with a increased chance of a super rare dice and a low chance at ultra rare dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+                    
+                        //-----------intermidiate dice pack code---------------
+            
+                        const dnum = 3;
+                        var darr = [];
+                        
+                        var resultstring = "";
+                        var ultrarareodds = 0.05;
+                        var superrareodds = 0.2;
+        
+                        resultstring+= "You open your dice pack, and it contains the following dice: \n\n";
+                        for(var i = 0; i < dnum; i++)
+                        {
+                            var dice = new Dice();
+                            if(Math.random() < ultrarareodds)
+                            {
+                                dice.generate("rare3");
+                                resultstring+= (i+1)+": "+dice.read()+"(:star2: :sparkling_heart::sparkles: **ULTRA RARE DICE!** :sparkles::sparkling_heart::star2: )\n";
+                            }else if(Math.random() < superrareodds)
+                            {
+                                dice.generate("rare2");
+                                resultstring+= (i+1)+": "+dice.read()+"(:sparkling_heart::sparkles: SUPER RARE DICE! :sparkles::sparkling_heart:)\n";
+                            }else
+                            {
+                                dice.generate("rare1");
+                                resultstring+= (i+1)+": "+dice.read()+"(:sparkles:Rare Dice!:sparkles:)\n";
+                            }
+                            darr.push(dice);
+                        }
+                        resultstring+= "\n type in a number within 1 minute to choose a dice. Otherise one will be chosen at random.\n"
+                        message.channel.sendMessage(resultstring);
+            
+                        resultstring = "";
+                        var value;
+                        var num;
+                        var again;
+                        
+                        
+                        do{
+                            again = false;
+                            console.log("Begining of loop");
+                            const responses = await message.channel.awaitMessages(msg2 => msg2.author.id === message.author.id, {
+                                maxMatches: 1,
+                                time: 60000//60 seconds
+                            });
+                            if(responses && responses.size === 1) value = responses.first().content; else{
+                                num = Dice.rint(dnum);
+                                resultstring += "Time ran out, choosing dice number "+(num+1)+"\n";
+                                console.log("Time ran out");
+                                break;
+                            }
+                            var num = parseInt(value)
+                            if(!isNaN(num) && num > 0 && num <= dnum){ 
+                                
+                                console.log("We did good today");
+                                num--;
+                                
+                            }else{
+                                message.channel.sendMessage("Invalid choice, please try again.");
+                                again = true;
+                                console.log("Let's go again");
+                            }
+                        }while(again);
+                        console.log("Out of the loop!");
+            
+                        message.channel.sendMessage(resultstring+"Dice number "+(num+1)+" ("+darr[num].read()+") was added to your dicebag!");
+            
+                        misc.addToDicebag(darr[num],id,ch);
+            
+            
+                        //-----------end basic dice pack code
+                    },800));
     
         
         return titems;

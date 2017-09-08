@@ -46,9 +46,9 @@ class MehCommand extends commando.Command {
 
             var meta = (something == "meta");
 
-
+           
             //currency.addReputation(1000,id,ch);
-            //currency.changeBalance(id,10000,"dollar",ch);
+            currency.changeBalance(id,10000,"dollar",ch);
             var resultstring = "";
             for(var i = 0;i<10;i++)
 
@@ -56,9 +56,7 @@ class MehCommand extends commando.Command {
                 d.generate(something);
                 resultstring+=d.read()+"\n"
             }
-            message.channel.send(resultstring);
-
-            
+            message.channel.send(resultstring);            
             
         }
     }

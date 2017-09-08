@@ -352,6 +352,7 @@ class DicevsCommand extends commando.Command {
                 
                 //----------------diceupgrade----------------
                 //var difficulty = 1;
+                
                 var ddice = misc.getormakedice(uid,ch);
                 var boost = ddice.addEmoji(oid,difficulty);
                 var toupgrade;
@@ -372,10 +373,14 @@ class DicevsCommand extends commando.Command {
                 }
                 if(boost)
                 {
+                    
                     if(ddice.getEmojiCount(difficulty) % toupgrade == 0 && ddice.getEmojiCount(difficulty) <= 50)
                     {
                         ddice.augment(1,"emoji"+difficulty,10);
                         resultstring+= ":sparkles:For defeating "+ddice.getEmojiCount(difficulty)+" level "+difficulty+" emojis, your dice has gained gained 1 point!:sparkles:\n";
+                    }else{
+                        resultstring = resultstring+= "Your dice has deated "+ddice.getEmojiCount(difficulty)+" level "+difficulty+" emojis! Defeat "+(5-(ddice.getEmojiCount(difficulty) % toupgrade))+" more to upgrade your dice!\n";
+                        
                     }
                 }
 
@@ -530,8 +535,8 @@ class DicevsCommand extends commando.Command {
                 if(uid != oid){
                     if(misc.daily("dice_pvpvictimrep",oid,ch))
                     {
-                        resultstring = resultstring+= "Oponent has gained 2 reputation!\n";
-                        currency.addReputation(2,oid,ch);
+                        resultstring = resultstring+= "Oponent has gained 1 reputation!\n";
+                        currency.addReputation(1,oid,ch);
                         
                     }
                 }

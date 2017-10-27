@@ -52,7 +52,7 @@ class DicevsCommand extends commando.Command {
             name2 = misc.getTrueName(id2,ch,this.client);
             otype = "user";
         }else{
-            var oinfo = this.isValidOponent(argoponent)
+            var oinfo = DicevsCommand.isValidOponent(argoponent);
             if(oinfo == "null")
             {
                 message.channel.sendMessage("That's not a valid oponent...");
@@ -141,7 +141,7 @@ class DicevsCommand extends commando.Command {
 
     }
 
-    isValidOponent(string){
+    static isValidOponent(string){
         
         var emoji = misc.getEmoji(string);
         

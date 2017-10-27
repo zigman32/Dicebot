@@ -60,6 +60,7 @@ class ModifiersCommand extends commando.Command {
         resultstring+= "(E): Edge. Gain an extra point in ties.\n";
         resultstring+= "(F): Fall. Loose an extra point in ties.\n";
         resultstring+= "(I): Inversion. Inverts type matchups.\n";
+        resultstring+= "(S): ???.\n";
         resultstring+= "(&XXX): Add XXX type. Adds XXX type to your dice, performing extra type calculations.\n";
         
         

@@ -140,6 +140,40 @@ class Misc {
         ch.settings.set("DICE_dicebag_"+id,bag)
     }
 
+    static getInventory(id,ch){
+        return ch.settings.get("DICE_inventory_"+id,{items:{}});
+    }
+
+    static setInventory(inv,id,ch){
+        ch.settings.set("DICE_inventory_"+id,inv)
+    }
+
+    static addToInventory(item,id,ch,amount=1){
+        var inv = Misc.getInventory(id,ch);
+        if(typeof inv.items[""+item] === "undefined")
+            inv.items[""+item] = 0;
+        
+        inv.items[""+item]+=amount;
+        Misc.setInventory(inv,id,ch);
+    }
+
+    static hasItem(item,id,ch){
+        var inv = Misc.getInventory(id,ch);
+        if(typeof inv.items[""+item] === "undefined")
+            inv.items[""+item] = 0;
+        
+        return inv.items[""+item]>0;
+    }
+
+    static consumeItem(item,id,ch){
+        var inv = Misc.getInventory(id,ch);
+        if(typeof inv.items[""+item] === "undefined")
+            inv.items[""+item] = 0;
+        
+        inv.items[""+item]--;
+        Misc.setInventory(inv,id,ch);
+    }
+
     static getTrueName(id,ch,client){
         
         var user = client.users.get(id);

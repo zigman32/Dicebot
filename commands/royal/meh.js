@@ -4,6 +4,7 @@ const mydice = require('../dice/diceclass.js');
 const currency = require('../../structures/currency.js');
 const vs = require('../dice/dicevs.js');
 const dsemoji = require('discord-emoji');
+const item = require('../dice/item');
 
 
 class MehCommand extends commando.Command {
@@ -46,17 +47,9 @@ class MehCommand extends commando.Command {
 
             var meta = (something == "meta");
 
-           
-            //currency.addReputation(1000,id,ch);
-            currency.changeBalance(id,10000,"dollar",ch);
-            var resultstring = "";
-            for(var i = 0;i<10;i++)
 
-            {   var d = new mydice();
-                d.generate(something);
-                resultstring+=d.read()+"\n"
-            }
-            message.channel.send(resultstring);            
+            misc.addToInventory(something,id,ch,10);
+                      
             
         }
     }

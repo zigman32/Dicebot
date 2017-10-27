@@ -25,7 +25,7 @@ class DicebagCommand extends commando.Command {
                     key: 'diceid',
                     prompt: 'which dice do you want to check, swap, or delete',
                     type: 'integer',
-                    default: ''
+                    default: '-1'
 
                     
                 }
@@ -50,11 +50,21 @@ class DicebagCommand extends commando.Command {
         }
         
         if(action == "view" || action == "check"){
+            if(diceid < 0)
+            {
+                message.channel.sendMessage("Please specify which dice you want to view (0 for 1-10, 1 for 11-20, etc)");
+                return;
+            }
+            var spot = diceid;
+            
+            var dicemin = spot*10;
+            var dicemax = spot*10+10;
+
             var resultstring = "";
-            resultstring+= "List of dice in your dice bag: \n\n"
+            resultstring+= "List of dice in your dice bag: (From "+(dicemin+1)+" to "+dicemax+") \n\n"
             var dicebag = misc.getDicebag(id,ch);
 
-            for(var i = 0;i<dicebag.dice.length;i++){
+            for(var i = dicemin;i<dicebag.dice.length && i<dicemax ;i++){
                 resultstring+= (i+1)+":"+mydice.toDice(dicebag.dice[i]).read()+"\n";
             }
             message.channel.sendMessage(resultstring);
@@ -116,7 +126,7 @@ class DicebagCommand extends commando.Command {
                 dicebag.dice.splice(sdice,1);
                 misc.setDiceBag(dicebag,id,ch);
                 currency.changeBalance(id,20,"dollar",ch);
-                message.channel.sendMessage("*Takes your unwanted dice and drops it in a garbage compactor, and gives you 20 "+currency.textPlural()+" in exchange.*");
+                message.channel.sendMessage("You sold your dice for 20 "+currency.textPlural()+"");
                 return;
             }else{
                 message.channel.sendMessage("Deletion canceled.");

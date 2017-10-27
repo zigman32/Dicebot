@@ -1,3 +1,2 @@
-:loop
 node --harmony .
-goto loop
+pause >nul

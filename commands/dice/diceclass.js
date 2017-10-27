@@ -52,13 +52,31 @@ class Dice {
 
         var out = "";
         var i;
+        var tscore = 0;
         for(var i = 0;i<this.size;i++)
         {
             out=out+Dice.readFace(this.faces[i]);
+            tscore+=this.faces[i].value;
             if(i != this.size-1)
                 out = out + ",";
         }
+        out+=" **(total: "+tscore+")**";
         return out;
+    }
+
+    axeSide(){
+        var s = this.axed;
+        if(typeof s === "undefined")
+            this.axed = false;
+        if(this.axed)
+            return false;
+
+        var sside = Dice.rint(this.faces.length);
+        this.faces.splice(sside,1);
+        this.size--;
+        this.axed = true;
+        return true;
+
     }
 
     static readFace(face){
@@ -66,10 +84,16 @@ class Dice {
         resultstring += face.type+" "+face.value;
         if(typeof face.mods === "undefined")
             face.mods = [];
+        if(face.mods.length != 0)
+            resultstring += "``";
         for(var i = 0;i<face.mods.length;i++)
         {
             resultstring += "("+face.mods[i]+")";
         }
+        if(face.mods.length != 0)
+            resultstring += "``";
+    
+        //resultstring += "*";
         return resultstring;
     }
 
@@ -109,6 +133,74 @@ class Dice {
         }
         return this.boosts[type];
     }
+    addMod(mod){
+        var choices = [];
+        for(var i = 0;i<this.size;i++){
+            if(this.validMod(i,mod))
+            {
+                choices.push(i);
+            }
+        }
+        if(choices.length <= 0)
+            return false;
+        this.faces[choices[Dice.rint(choices.length)]].mods.push(mod);
+        return true;
+    }
+
+    removeModifier(mod){
+        var found = false;
+        for(var i = 0;i<this.size;i++){
+            var sp = this.faces[i].mods.indexOf(mod);
+            if(sp >= 0)
+            {
+                found = true;
+                this.faces[i].mods.splice(sp,1);
+            }    
+        }
+        return found;
+    }
+    validMod(side,mod){
+        var modlist = this.faces[side].mods;
+        
+        if(mod[0] == '&')
+        {
+            for(var i = 0;i<modlist.length;i++)
+            {
+                if(modlist[i][0] == "&")
+                    return false;
+            }
+            return true;
+        }
+        if(mod.length >= 2 && mod[1] == "_")
+        {
+            for(var i = 0;i<modlist.length;i++)
+            {
+                if(modlist[i].length >=5 && modlist[i][1] == mod[1]&& modlist[i][2] == mod[2]&& modlist[i][3] == mod[3]&& modlist[i][4] == mod[4])
+                    return false;
+            }
+            return true;
+        }
+
+        switch(mod)
+        {
+            case "E":
+            case "F":
+            case "I":
+            case "S":
+            case "H":
+            case "L":
+                return !modlist.includes(mod);
+                break;//unececerry
+            case "A":
+            case "QA":
+            case "D":
+            case "QD":
+                return !(modlist.includes("A") || modlist.includes("QA") || modlist.includes("D") || modlist.includes("QD"))
+        }
+
+        return true;
+
+    }
     augment(num,space = 0,max = 99999){
 
         if (typeof this.boosts === "undefined"){
@@ -137,7 +229,9 @@ class Dice {
         if(space != 0)
         {
             this.boosts[space] = this.boosts[space]+left;
+            return true;
         }
+        return false;
     }
     addEmoji(name,difficulty){
 
@@ -186,6 +280,9 @@ class Dice {
         var modnum; //Default is 1, this is number of times modchance is rolled
         var iter = 1;
         var ultmutatechance = 0;//chance to mutate a type to the ultimate type. 
+        var bonus = false;
+        var badchance = 0.15;
+
 
         if(dicetype.includes("user"))
         {
@@ -194,8 +291,32 @@ class Dice {
             BONUSRANGE = 0;
             NUMTYPES = 2;
             MINSCORE = 0;
-            modlevel = [100,0,0,0,0];
-            modnum = [100,0,0,0];
+            modlevel = {values:["level0"],weights:[100]};
+            modnum = {values:[0],weights:[100]}; 
+            iter = 2;
+            
+        }
+        if(dicetype.includes("slim1"))
+        {
+            SIDES = 5;
+            DEFAULTSCORE = 16;
+            BONUSRANGE = 0;
+            NUMTYPES = 2;
+            MINSCORE = 0;
+            modlevel = {values:["level0"],weights:[100]};
+            modnum = {values:[0],weights:[100]}; 
+            iter = 2;
+            
+        }
+        if(dicetype.includes("slim2"))
+        {
+            SIDES = 5;
+            DEFAULTSCORE = 19;
+            BONUSRANGE = 0;
+            NUMTYPES = 2;
+            MINSCORE = 0;
+            modlevel = {values:["level0"],weights:[100]};
+            modnum = {values:[0],weights:[100]}; 
             iter = 2;
             
         }
@@ -205,8 +326,8 @@ class Dice {
             DEFAULTSCORE = 19; //for 6 sides, if more or less, result is adjusted accordingly
             BONUSRANGE = 0;
             NUMTYPES = Dice.rint(4)+1;
-            modlevel = [65,30,5,0,0];//First value is odds of no modifiers, second is level 1 etc
-            modnum = [80,15,5,0];
+            modlevel = {values:["level1","level2"],weights:[30,5]};
+            modnum = {values:[0,1,2,3],weights:[65,35,0,0]};
             iter = 2;
         }
         if(dicetype.includes("emoji1"))
@@ -216,9 +337,10 @@ class Dice {
             BONUSRANGE = 5;
             NUMTYPES = Dice.rint(4)+1;
             MINSCORE = 0;
-            modlevel = [65,30,5,0,0];//First value is odds of no modifiers, second is level 1 etc
-            modnum = [80,15,5,0];
+            modlevel = {values:["level1","level2"],weights:[30,5]};
+            modnum = {values:[0,1,2,3],weights:[65,35,0,0]};
             iter = 3;
+            badchance = 0.15;
         }
         if(dicetype.includes("emoji2"))
         {
@@ -227,9 +349,10 @@ class Dice {
             BONUSRANGE = 10;
             NUMTYPES = Dice.rint(4)+1;
             MINSCORE = 0;
-            modlevel = [30,40,25,5,0];//First value is odds of no modifiers, second is level 1 etc
-            modnum = [80,15,5,0];
+            modlevel = {values:["level1","level2","level3"],weights:[35,6,2]};
+            modnum = {values:[0,1,2,3],weights:[35,55,6,2]};
             iter = 4;
+            badchance = 0.1;
         }
         if(dicetype.includes("emoji3"))
         {
@@ -238,10 +361,11 @@ class Dice {
             BONUSRANGE = 20;
             NUMTYPES = Dice.rint(4)+1;
             MINSCORE = 0;
-            modlevel = [20,0,40,30,10];//First value is odds of no modifiers, second is level 1 etc
-            modnum = [40,30,20,10];
+            modlevel = {values:["level2","level3","level4"],weights:[40,30,10]};
+            modnum = {values:[0,1,2,3,4],weights:[20,40,30,20,10]};
             iter = 6;
             ultmutatechance = 0.03;
+            badchance = 0;
         }
         if(dicetype.includes("emoji4"))
         {
@@ -250,9 +374,10 @@ class Dice {
             BONUSRANGE = 30;
             NUMTYPES = Dice.rint(4)+1;
             MINSCORE = 0;
-            modlevel = [0,5,5,20,80];//YEAH THEY DON'T ADD UP TO 100 DEAL WITH IT
-            modnum = [20,25,30,35];
+            modlevel = {values:["level1","level2","level3","level4"],weights:[5,5,20,80]};
+            modnum = {values:[1,2,3,4],weights:[20,25,30,35]};
             iter = 9;
+            badchance = 0;
             ultmutatechance = 0.06;
         }
         if(dicetype.includes("rare0"))//common
@@ -264,8 +389,8 @@ class Dice {
             if(Math.random() < 0.2)
                 NUMTYPES++;
             MINSCORE = 0;
-            modlevel = [90,10,0,0,0];
-            modnum = [100,0,0,0];
+            modlevel = {values:["level1"],weights:[100]};
+            modnum = {values:[0,1],weights:[90,10]};
             iter = 2;
         }
         if(dicetype.includes("rare1"))//rare
@@ -290,8 +415,8 @@ class Dice {
                 NUMTYPES--;
             
             MINSCORE = 2;
-            modlevel = [80,15,5,0,0];
-            modnum = [95,5,0,0];
+            modlevel = {values:["level1","level2"],weights:[15,5]};
+            modnum = {values:[0,1,2],weights:[80,15,1]};
             iter = 2;
         }
         if(dicetype.includes("rare2"))//super rare (100 favor)
@@ -316,8 +441,9 @@ class Dice {
                 NUMTYPES--;
             
             MINSCORE = 3;
-            modlevel = [50,20,20,10,0];
-            modnum = [80,10,10,0];
+            modlevel = {values:["level1","level2","level3"],weights:[20,20,10]};
+            modnum = {values:[0,1,2,3],weights:[40,60,5,3]};
+            badchance = .1;
             iter = 2;
         }
         if(dicetype.includes("rare3"))//ultra rare (300/500 favor)
@@ -342,9 +468,10 @@ class Dice {
                 NUMTYPES--;
             
             MINSCORE = 4;
-            modlevel = [20,20,20,20,20];
-            modnum = [60,20,10,10];
+            modlevel = {values:["level1","level2","level3","level4"],weights:[20,20,20,20]};
+            modnum = {values:[0,1,2,3,4],weights:[20,60,20,10,5]};
             iter = 2;
+            badchance = .05;
         }
         if(dicetype.includes("rare4"))//RADIANT (??? favor)
         {
@@ -357,14 +484,71 @@ class Dice {
             if(Math.random() < 0.1)
                 NUMTYPES--;
             
-            MINSCORE = 6;
-            modlevel = [0,0,25,25,50];
-            modnum = [25,25,25,25];
+            MINSCORE = 0;
+            modlevel = {values:["level2","level3","level4"],weights:[25,25,50]};
+            modnum = {values:[1,2,3,4],weights:[20,20,20,20]};
             iter = 2;
             ultmutatechance = 0.05;
+            badchance = 0.0;
         }
         
+        
             
+
+        if(dicetype.includes("TYPEBIAS1/"))//BOO
+        {
+            var thetype = parseInt(dicetype.split("/")[1]);
+            bonus = {type: "typebias", value: thetype};
+            modlevel = {values:["typebias1"],weights:[100]};
+            modnum = {values:[0,1,2,3],weights:[30,65,5,0]};
+            //console.log("TYPEBIAS1");
+            
+            badchance = 0;           
+        }
+        if(dicetype.includes("TYPEBIAS2/"))//BOO
+            {
+                var thetype = parseInt(dicetype.split("/")[1]);
+                bonus = {type: "typebias", value: thetype};
+                modlevel = {values:["typebias2"],weights:[100]};
+                modnum = {values:[0,1,2,3],weights:[10,70,15,5]};
+                //console.log("TYPEBIAS2");
+                badchance = 0;           
+            }
+        if(dicetype.includes("adv1")){
+
+            var theadditions;
+            if(Math.random() < 0.5)
+                theadditions = "a1"
+            if(Math.random() < 0.1)
+                theadditions = "q1"
+            if(Math.random() < 0.05)
+                theadditions = "a2"
+            if(Math.random() < 0.01)
+                theadditions = "q2"
+            
+            
+            bonus = {type: "adv", value: theadditions};
+            modlevel = {values:["advantage1"],weights:[100]};
+            
+        }
+        if(dicetype.includes("wgt1")){
+
+            
+            modlevel = {values:["weight1"],weights:[100]};
+            
+        }
+
+        if(dicetype.includes("ult1")){
+
+            var theadditions = "";
+            if(Math.random() < 0.6)
+                theadditions = "u1"
+            if(Math.random() < 0.02)
+                theadditions = "u2"
+            ultmutatechance = 0.07;
+            bonus = {type: "ult", value: theadditions};
+            
+        }
 
         if(dicetype.includes("TYPE/"))
         {
@@ -380,14 +564,29 @@ class Dice {
         
         
         
-        this.boosts = [];
+        this.boosts = {};
 
         var score = DEFAULTSCORE+Dice.rint(BONUSRANGE);
 
         this.initFaces(SIDES);
+        if(dicetype.includes("STURDY1"))
+        {
+            for(var i = 0;i<SIDES;i++){
+                if(Math.random() < 0.16)
+                    this.faces[i].mods.push("S");
+            }
+        }
+        if(dicetype.includes("STURDY_ALL"))
+        {
+            for(var i = 0;i<SIDES;i++){
+                this.faces[i].mods.push("S");
+            }
+        }
+
+
         this.assignFacesScore(score,SIDES,MINSCORE,iter);
         this.assignFacesType(NUMTYPES,SIDES);
-        this.assignMods(modlevel,modnum,SIDES);
+        this.assignMods(modlevel,modnum,SIDES,badchance,bonus);
         this.finalMutations(dicetype,ultmutatechance,SIDES);
         
         
@@ -467,17 +666,27 @@ class Dice {
 
     
     
-    assignMods(modchance,modnum,SIDES){
+    assignMods(modchance,modnum,SIDES,badchance,bonus = false){
+
+        const MAXMODS = 5;
+        var typebias = -1;
+        if(bonus != false)
+        {
+            if(bonus.type == "typebias")
+            {
+                typebias = bonus.value;
+            }
+        }
 
         for(var k = 0;k<SIDES;k++)
         {
 
             var modlevel = 0;
-            var modamount = Dice.rweights([1,2,3,4],modnum);
+            var modamount = Dice.rweights(modnum.values,modnum.weights);
             for(var i = 0;i<modamount;i++)
             {
-                modlevel = Dice.rweights([0,1,2,3,4],modchance);
-                var mods = Dice.getRandomModifiers(modlevel,0.25);
+                modlevel = Dice.rweights(modchance.values,modchance.weights);
+                var mods = Dice.getRandomModifiers(modlevel,badchance,typebias);
                 for(var j = 0;j<mods.length;j++)
                 { 
                     this.faces[k].mods.push(mods[j]);
@@ -487,14 +696,60 @@ class Dice {
         }
     }
 
-    finalMutations(dtype,ultmutatechance,SIDES){
+    finalMutations(dtype,ultmutatechance,SIDES,bonus = false){
+
+        var modcheck = "";
+        if(bonus != false)
+        {
+            if(bonus.type == "adv" || bonus.type == "ult"){
+                modcheck = bonus.value;
+            }
+        }
+        var selectone = Dice.rint(SIDES);
+        
+        for(var i = 0;i<SIDES;i++)
+        {
+            switch(modcheck){
+                case "a1":
+                    if(i == selectone)
+                    {
+                        this.faces[i].mods.push("A");
+                    }
+                    break;
+                case "a2":
+                    this.faces[i].mods.push("A");
+                    break;
+                case "q1":
+                    if(i == selectone)
+                    {
+                        this.faces[i].mods.push("QA");
+                    }
+                    break;
+                case "q2":
+                    if(Math.random() < 0.5)
+                        this.faces[i].mods.push("QA");
+                    else
+                        this.faces[i].mods.push("A");
+                    break;
+                case "u1":
+                    if(i == selectone){
+                        this.faces[i].value = Math.max(this.faces[i].value-3,1,Math.floor(this.faces[i].value*.75));
+                        this.faces[i].type = Dice.typenumtoname(18);
+                    }
+                    break;
+                case "u2":
+                    this.faces[i].value = Math.max(this.faces[i].value-3 ,1,Math.floor(this.faces[i].value*.75));
+                    this.faces[i].type = Dice.typenumtoname(18);
+                    break;
+            }
+        }
         for(var i = 0;i<SIDES;i++)
         {
             this.removeDuplicateModifiers(this.faces[i]);     
             if(Math.random()<ultmutatechance)
             {
-                this.faces[i].value = Math.max(this.faces[i].value-5,1);
-                this.faces[i].type = "ultimate";
+                this.faces[i].value = Math.max(this.faces[i].value-5,1,Math.floor(this.faces[i].value*.75));
+                this.faces[i].type = Dice.typenumtoname(18);
             }
             
             
@@ -546,7 +801,7 @@ class Dice {
         return dice;
     }
 
-    static getRandomModifiers(level = 1,badchance = 0.25){
+    static getRandomModifiers(level = "level1",badchance = 0.25,typebias = -1){
 
 
         
@@ -555,29 +810,56 @@ class Dice {
         var tdist =[];
 
         switch(level){
-            case 0:
+            case "level0":
                 return [];
-            case 1:
+            case "level1":
                 modlist =   ["TNUM","C_","EDGE","RNG","HEAVY","LIGHT"];
                 weights =   [    50,  10,    10,   20,      5,      5]; 
                 tdist = [100,0,0,0];
                 break;
-            case 2:
+            case "level2":
                 modlist =   ["TNUM","C_","R_","EDGE","RNG","HEAVY","LIGHT","INV"];
                 weights =   [    30,   8,   7,     5,   20,     10,     10,   10]; 
                 tdist = [80,20,0,0]
                 break;
-            case 3:
+            case "level3":
                 modlist =   ["TNUM","C_","R_","D_","EDGE","ADV","RNG","HEAVY","LIGHT","AND","INV"];
                 weights =   [    25,   5,   5,    5,   5,    10,   10,     10,     10,   10,    5];
                 tdist = [67,26,7,0];
 
                 break;
-            case 4:
+            case "level4":
                 modlist =   ["TNUM","C_","R_","D_","ADV","QA","RNG","HEAVY","LIGHT","AND","INV"];
                 weights =   [    15,   5,   5,  10,   20,   5,   10,     10,     10,   10,    5];
                 tdist = [0,67,26,7];
                 break;
+            case "typebias1":
+                modlist =   ["TNUM","C_","R_","D_","ADV","QA","RNG","HEAVY","LIGHT","AND","INV","EDGE"];
+                weights =   [    50,  20,  20,  10,   1,    0,    5,      5,      5,   10,    3,     5];
+                tdist = [100,0,0,0];
+                break;
+            case "typebias2":
+                modlist =   ["TNUM","C_","R_","D_","ADV","QA","RNG","HEAVY","LIGHT","AND","INV","EDGE"];
+                weights =   [    50,  20,  20,  10,   1,    0,    5,      5,      5,   10,    3,     5];
+                tdist = [100,0,0,0];
+                break;
+            case "sturdy1":
+                modlist =   ["TNUM","C_","R_","D_","ADV","QA","RNG","HEAVY","LIGHT","AND","INV","EDGE",   "S"];
+                weights =   [    30,   8,   7,   2,    1,   0,   20,     10,     10,    1,   10,     5,    20];
+                tdist = [70,20,10,0];
+                break;
+            case "advantage1":
+                modlist =   ["TNUM","C_","R_","D_","ADV","QA","RNG","HEAVY","LIGHT","AND","INV"];
+                weights =   [     5,   5,   5,  10,   40,  15,    5,      5,      5,    5,    5];
+                tdist = [67,26,7,0];
+                break;
+            case "weight1":
+                modlist =   ["TNUM","C_","R_","D_","EDGE","ADV","RNG","HEAVY","LIGHT","AND","INV"];
+                weights =   [    5,   2,   3,    5,     0,    1,   4,     35,     35,   5,    5];
+                tdist = [67,26,7,0];
+                break;
+            
+
 
         }
         var mod = Dice.rweights(modlist,weights);
@@ -587,16 +869,19 @@ class Dice {
         {
             num = Dice.rweights([1,2,3,4],tdist);
         }
-        if((mod == "C_" || mod == "R_" || mod == "D_") && (level == 4))
-        {
-            num = Dice.rweights([1,2],[80,20]);
-        }
+        
 
         for(var i = 0; i<num;i++)
         {
-            var type = Dice.typenametonick(Dice.typenumtoname(Dice.rint(18)));            
+            var type;
+            if(typebias == -1)
+                type = Dice.typenametonick(Dice.typenumtoname(Dice.rint(18)));
+            else
+                type = Dice.typenametonick(Dice.typenumtoname(typebias));
+
             var bad = false;
-            if(Math.random < badchance)
+            //console.log("BADCHANCE: "+badchance);
+            if(Math.random() < badchance)
                 bad = true;
             
             switch(mod){
@@ -604,22 +889,31 @@ class Dice {
                     var gb = (bad?"-":"+");
                     
                     switch(level){
-                        case 1:
+                        case "level1":
                             var val = (Dice.rint(3)+1);
                             mods.push(type+gb+val);
                             break;
-                        case 2:
+                        case "level2":
                             var val = (Dice.rint(3)+2);
                             mods.push(type+gb+val);
                             break;
-                        case 3:
+                        case "level3":
                             var val = (Dice.rint(4)+3);
                             mods.push(type+gb+val);
                             break;
-                        case 4:
+                        case "level4":
                             var val = (Dice.rint(6)+5);
                             mods.push(type+gb+val);
                             break;
+                        case "typebias1":
+                            var val = (Dice.rint(3)+1);
+                            mods.push(type+gb+val);
+                            break;
+                        case "typebias2":
+                            var val = (Dice.rint(3)+4);
+                            mods.push(type+gb+val);
+                            break;
+                        
                         default:
                             var val = (Dice.rint(3)+1);
                             mods.push(type+gb+val);
@@ -651,23 +945,31 @@ class Dice {
                     break;
                 case "RNG":
                     switch(level){
-                        case 1:
+                        case "level1":
                             var val = (Dice.rint(2)+1);
                             mods.push("+-"+val);
                             break;
-                        case 2:
+                        case "level2":
                             var val = (Dice.rint(4)+1);
                             mods.push("+-"+val);
                             break;
-                        case 3:
+                        case "level3":
                             var val = (Dice.rint(5)+3);
                             mods.push("+-"+val);
                             break;
-                        case 4:
+                        case "level4":
                             var val = (Dice.rint(8)+5);
                             mods.push("+-"+val);
                             break;
-                        default:
+                        case "typebias1":
+                            var val = (Dice.rint(4)+1);
+                            mods.push("+-"+val);
+                            break;
+                        case "typebias2":
+                            var val = (Dice.rint(4)+3);
+                            mods.push("+-"+val);
+                            break;
+                        efault:
                             var val = (Dice.rint(3)+1);
                             mods.push("+-"+val);
                             

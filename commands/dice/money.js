@@ -39,7 +39,7 @@ class SizeCommand extends commando.Command {
         var out;
 
         out = currency.getBalance(member.id,"dollar",ch);
-        console.log("MEMBER ID: "+member.id);
+        //console.log("MEMBER ID: "+member.id);
         
         
 

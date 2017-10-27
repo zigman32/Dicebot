@@ -1,6 +1,7 @@
 const commando = require('discord.js-commando');
 const misc = require('../misc.js');
 const currency = require('../../structures/currency.js');
+const Item = require('./item')
 
 
 class DicetradeCommand extends commando.Command {
@@ -27,10 +28,7 @@ class DicetradeCommand extends commando.Command {
                     prompt: 'What do you want in return?',
                     type: 'string'
                 }
-            ],throttling: {
-                usages: 1,
-                duration: 400
-            }
+            ]
         });
 
     }
@@ -56,7 +54,12 @@ class DicetradeCommand extends commando.Command {
          * 
          * either player can cancel the trade
          */
-        
+        var twanttype = "";
+        var twantval;
+        var toffertype = "";
+        var tofferval;
+        var tofferstring;
+        var twantstring;
         if(offer == "dice" && want == "dice"){
             var value;
             var d1 = misc.getormakedice(id1,ch);
@@ -83,24 +86,127 @@ class DicetradeCommand extends commando.Command {
                 return;
             }
         }else
-        if(offer == "dice" && want[0] == "$"){
-            var value;
-            var price = parseInt(want.replace('$',''));
-            if(isNaN(price)){
-                message.channel.sendMessage("Invalid trade");
-                return;
+        {
+            if(offer == "dice"){
+                var db1 = misc.getDicebag(id1,ch);
+                if(db1.dice.length == 0)
+                {
+                    message.channel.sendMessage("You have no replacement dice, trade canceled.");
+                    return;
+                }
+                toffertype = "dice";
+                var d1 = misc.getormakedice(id1,ch);
+                tofferval = misc.getuniqueID(d1)
+                tofferstring = "Offering: "+d1.read();
             }
-            var db1 = misc.getDicebag(id1,ch);
-            if(db1.dice.length == 0)
-            {
-                message.channel.sendMessage("You have no replacement dice, trade canceled.");
-                return;
+            if(want == "dice"){
+                var db1 = misc.getDicebag(id1,ch);
+                if(db1.dice.length == 0)
+                {
+                    message.channel.sendMessage("You have no replacement dice, trade canceled.");
+                    return;
+                }
+                twanttype = "dice";
+                var d2 = misc.getormakedice(id2,ch);
+                twantval = misc.getuniqueID(d2);
+                twantstring = "In exchange for: "+d2.read()
             }
             
-            var d1 = misc.getormakedice(id1,ch);
-            var d2 = misc.getormakedice(id2,ch);
-            message.channel.sendMessage("Offering dice: "+d1.read()+"\nIn exchange for: $"+price+"\nRespond with ``confirm`` to confirm, or anything else to cancel.");
+            if(/\$\d+/.test(offer)){
+                toffertype = "money";
+                console.log("Before");
+                tofferval = parseInt(/\$(\d+)/.exec(offer)[1]);
+                console.log("after");
+                if(twantval < 0)
+                {
+                    message.channel.sendMessage("You can't trade negative money! Trade canceled.");
+                    return;
+                }
+                if(currency.getBalance(id1,"dollar",ch)<tofferval){
+                    message.channel.sendMessage("You can't afford that trade! Trade canceled.");
+                    return;
+                }
+                tofferstring = "Offering: "+tofferval+" "+currency.textPlural();
+            }
 
+            if(/\$\d+/.test(want)){
+                twanttype = "money";
+                
+                twantval = parseInt(/\$(\d+)/.exec(want)[1]);
+                if(twantval < 0)
+                {
+                    message.channel.sendMessage("You can't trade negative money! Trade canceled.");
+                    return;
+                }
+                if(currency.getBalance(id2,"dollar",ch)<tofferval){
+                    message.channel.sendMessage("They can't afford that trade! Trade canceled.");
+                    return;
+                }
+                twantstring = "In exchange for: "+twantval+" "+currency.textPlural();
+            }
+
+            if(offer[0] == "i"){
+                
+                var inventory = misc.getInventory(id1,ch);
+                var itemname = offer.substring(1);
+
+
+                var index = 1;
+                for (var key in inventory.items) {
+                    if (inventory.items.hasOwnProperty(key)) {
+                        var element = inventory.items[key];
+                        var item = Item.getItembyID(key);
+    
+                        if(element > 0 && (item.name.toLowerCase() == itemname.toLowerCase() || index == parseInt(itemname)))
+                        {
+                            
+                            toffertype = "item";
+                            tofferval = key;
+                            tofferstring = "Offering: "+item.name;
+                            
+                            break;
+                        }
+                        if(element > 0)
+                            index++;
+                        
+                    }
+                }
+            }
+
+            if(want[0] == "i"){
+
+                var inventory = misc.getInventory(id2,ch);
+                var itemname = want.substring(1);
+
+
+                var index = 1;
+                for (var key in inventory.items) {
+                    if (inventory.items.hasOwnProperty(key)) {
+                        var element = inventory.items[key];
+                        var item = Item.getItembyID(key);
+    
+                        if(element > 0 && (item.name.toLowerCase() == itemname.toLowerCase() || index == parseInt(itemname)))
+                        {
+                            
+                            twanttype = "item";
+                            twantval = key;
+                            twantstring = "In exchange for: "+item.name;
+                            
+                            break;
+                        }
+                        if(element > 0)
+                            index++;
+                        
+                    }
+                }
+            }
+            if(toffertype == "" || twanttype == ""){
+                message.channel.sendMessage("Invalid trade!");
+                return;
+            }
+
+            message.channel.sendMessage(tofferstring+"\n"+twantstring+"\n type ``confirm`` to confirm")
+            var value;
             const responses = await message.channel.awaitMessages(msg2 => msg2.author.id === message.author.id, {
                 maxMatches: 1,
                 time: 30000
@@ -112,20 +218,14 @@ class DicetradeCommand extends commando.Command {
             if(lc === 'confirm'){ 
                 var dat = new Date();
                 var exp = dat.getTime()+1000*60*5;//5 minutes
-                ch.settings.set("DICE_trade_"+id1+"_"+id2,{offertype: "dice", offerval: misc.getuniqueID(d1), wanttype: "money", wantval: price, expire: exp});
+                ch.settings.set("DICE_trade_"+id1+"_"+id2,{offertype: toffertype, offerval: tofferval, wanttype: twanttype, wantval: twantval, expire: exp});
                 message.channel.sendMessage("confirmed, "+member+" use !accept "+message.author+" to accept the trade");
                 return;
             }else{
                 message.channel.sendMessage("Trade canceled.");
                 return;
             }
-        }else
-        {
-            message.channel.sendMessage("Invalid trade");
-        }
-
-
-        
+        } 
     }
 }
 

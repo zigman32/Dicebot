@@ -33,6 +33,7 @@ class GiveCommand extends commando.Command {
         const use = member.user;
         var user = member.user;
         var ch = message.guild;
+        var db = this.client.provider.db;
         var id2 = user.id;
         var id1 = message.author.id;
         
@@ -44,14 +45,14 @@ class GiveCommand extends commando.Command {
             message.channel.sendMessage("You can't give negative money to someone!");
             return;
         }
-        var awealth = currency.getBalance(id1,"dollar",ch);
+        var awealth = await currency.getMoney(id1,db);
         if(awealth < amount){
             message.channel.sendMessage("You don't have that much money!");
         }else
         {
-            currency.changeBalance(id1,-amount,"dollar",ch);
-            currency.changeBalance(id2,amount,"dollar",ch);
-            var bwealth = currency.getBalance(id2,"dollar",ch);
+            await currency.removeMoney(id1,amount,db);
+            await currency.addMoney(id2,amount,db);
+            var bwealth = await currency.getMoney(id2,db);
 
             message.channel.sendMessage("*You generously decide to give "+amount+" of your money to "+misc.getTrueName(id2,ch,this.client)+" who now has "+bwealth+" dicebux.*");
             

@@ -3,6 +3,7 @@ const misc = require('../misc.js');
 const currency = require('../../structures/currency.js');
 const mydice = require('./diceclass.js');
 const Item = require('./item');
+const Database = require('../../structures/database');
 
 
 
@@ -30,163 +31,108 @@ class AccepttradeCommand extends commando.Command {
         const member = args.member;
         const want = args.want;
         var user = member.user;
-        var ch = message.guild;
+        //var db = message.guild;
+        
+        var db = this.client.provider.db;
         var id2 = member.id;
         var id1 = message.author.id;
         
-        //var d1 = misc.getormakedice(id1,ch);
-        //var d2 = misc.getormakedice(id2,ch);
+
         
-        var tobj = ch.settings.get("DICE_trade_"+id2+"_"+id1,false);
+
+
+        
+        
+        var tobj = await Database.getTrade(id2,id1,db);
         if(!tobj)
         {
             message.channel.sendMessage("No such trade exists.");
             return;
         }
         var date = new Date();
-        if(tobj.expire <= date.getTime()){
+        if(tobj.exptime <= date.getTime()){
             message.channel.sendMessage("No such trade exists.");
             return;
         }
 
-        /*if(tobj.offertype == "dice")
-        {
-            if(misc.getuniqueID(d2) != tobj.offerval)
-            {
-                console.log(" d2: "+misc.getuniqueID(d2));
-                console.log(" d1: "+misc.getuniqueID(d1));
-                
-                console.log("val: "+tobj.offerval);
+        
 
-                message.channel.sendMessage("The person who proposed the trade changed their dice, trade canceled.");
-                return;
-            }
-        }
-        if(tobj.wanttype == "dice")
-        {
-            if(misc.getuniqueID(d1) != tobj.wantval)
-            {
-                message.channel.sendMessage("You changed your dice, trade canceled.");
-                return;
-            }
-        }
-        if(tobj.wanttype == "money")
-            {
-                if(currency.getBalance(id1,"dollar",ch) < tobj.wantval || tobj.wantval < 0)
-                {
-                    message.channel.sendMessage("You don't have enough money, trade canceled.");
-                    return;
-                }
-            }*/
-
-        var validateoffer = AccepttradeCommand.validateGift(id2,tobj.offertype,tobj.offerval,ch);
+        var validateoffer = await AccepttradeCommand.validateGift(id2,tobj.offertype,tobj.offerval,db);
         if(validateoffer != true)
         {
             message.channel.sendMessage("Invalid offer: "+validateoffer);
             return;
         }
-        var validatewant = AccepttradeCommand.validateGift(id1,tobj.wanttype,tobj.wantval,ch);
+        var validatewant = await AccepttradeCommand.validateGift(id1,tobj.wanttype,tobj.wantval,db);
         if(validatewant != true)
         {
             message.channel.sendMessage("Invalid request: "+validatewant);
             return;
         }
-        if(tobj.wanttype == "dice" && tobj.offertype == "dice")
+        console.log("Validation successful");
+        if(false && tobj.wanttype == "dice" && tobj.offertype == "dice")
         {
             
-            var d1 = misc.getormakedice(id1,ch);
-            var d2 = misc.getormakedice(id2,ch);
-            misc.setdice(d1,id2,ch);
-            misc.setdice(d2,id1,ch);
-        
-            message.channel.sendMessage("Trade successfull!");
-            ch.settings.set("DICE_trade_"+id2+"_"+id1,false);
+           
         }else{
-            AccepttradeCommand.giveToOtherUser(id2,id1,tobj.offertype,tobj.offerval,ch);
-            AccepttradeCommand.giveToOtherUser(id1,id2,tobj.wanttype,tobj.wantval,ch);
+            await AccepttradeCommand.giveToOtherUser(id2,id1,tobj.offertype,tobj.offerval,db);
+            await AccepttradeCommand.giveToOtherUser(id1,id2,tobj.wanttype,tobj.wantval,db);
             message.channel.sendMessage("Trade successfull!");
-            ch.settings.set("DICE_trade_"+id2+"_"+id1,false);
+            await Database.removeTrade(id2,id1,db);
             
         }
-        /*if(tobj.wanttype == "money" && tobj.offertype == "dice")
-        {
-            var db2 = misc.getDicebag(id2,ch);
-            if(db2.dice.length == 0)
-            {
-                message.channel.sendMessage("The other party has no replacement dice, trade canceled.");
-                return;
-            }
-            
-            misc.addToDicebag(d2,id1,ch);
-            currency.changeBalance(id1,-tobj.wantval,"dollar",ch);
-            currency.changeBalance(id2,tobj.wantval,"dollar",ch);
-            var setd2 = mydice.toDice(db2.dice[0]);
-            db2.dice.splice(0,1);
-            misc.setdice(setd2,id2,ch);
-            message.channel.sendMessage("Trade successfull! The other party's dice has been set to "+setd2.read());
-            
-            
-        }*/
+        
         
     }
 
-    static validateGift(sendid,sendtype,sendval,ch){
+    static async validateGift(sendid,sendtype,sendval,db){
         switch(sendtype)
         {
             case "dice":
-                
-                var sdice = misc.getormakedice(sendid,ch);
-                if(misc.getuniqueID(sdice) != sendval)
+                var duser = await Database.getOwnerOfDice(sendval,db);
+                if(!duser || sendid != duser.uid)
                 {
                     
     
-                    //message.channel.sendMessage("The person who proposed the trade changed their dice, trade canceled.");
-                    return "Dice is not the same as when the trade was proposed!";
+                    return "User no longer owns that dice!";
                 }
-                var db2 = misc.getDicebag(sendid,ch);
-                if(db2.dice.length == 0)
-                {
-                    return "No subsitute dice found!";
+                var adice = await misc.getormakedice(sendid,db);
+                if(adice.id == sendval)
+                {    
+                    return "You can't trade your active dice away!";
                 }
                 return true;
             case "money":
-                var smoney = currency.getBalance(sendid,"dollar",ch);
+                var smoney = await currency.getMoney(sendid,db);
                 if(smoney < sendval)
                 {    
                     return "Not enough "+currency.textPlural();
                 }
-                
                 return true;
             case "item":
-                if(!misc.hasItem(sendval,sendid,ch))
+                if(!(await misc.hasItem(sendval,sendid,db)))
                 {   
-                    console.log("SENDVAL: "+sendval);
                     return "Item not found!";
                 }
                 return true;
         }
     }
 
-    static giveToOtherUser(sendid,receiveid,sendtype,sendval,ch){
+    static async giveToOtherUser(sendid,receiveid,sendtype,sendval,db){
         switch(sendtype)
         {
             case "dice":
                 
-            //var d1 = misc.getormakedice(id1,ch);
-                var db2 = misc.getDicebag(sendid,ch);
-                var senddice = misc.getormakedice(sendid,ch);
-                misc.addToDicebag(senddice,receiveid,ch);
-                var setd2 = mydice.toDice(db2.dice[0]);
-                db2.dice.splice(0,1);
-                misc.setdice(setd2,sendid,ch);
+                await Database.changeDiceOwner(sendval,receiveid,db);
+                
                 break;
             case "money":
-                currency.changeBalance(sendid,-sendval,"dollar",ch);
-                currency.changeBalance(receiveid,sendval,"dollar",ch);
+                await currency.removeMoney(sendid,sendval,db);
+                await currency.addMoney(receiveid,sendval,db);
                 break;
             case "item":
-                misc.addToInventory(sendval,receiveid,ch);
-                misc.consumeItem(sendval,sendid,ch);
+                await misc.consumeItem(sendval,sendid,db);
+                await misc.addToInventory(sendval,receiveid,db);
                 break;
         }
         return true;

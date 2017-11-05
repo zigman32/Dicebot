@@ -28,8 +28,9 @@ class SizeCommand extends commando.Command {
         const member = args.member || message.author;
 		const user = member.user;
 
-        var ch = message.guild;
-
+        //var ch = message.guild;
+        var db = this.client.provider.db;
+        
         var theyyou;
         if (args.member){
             theyyou = "They"
@@ -37,13 +38,14 @@ class SizeCommand extends commando.Command {
             theyyou = "You"
         }
         var out;
-
-        out = currency.getBalance(member.id,"dollar",ch);
+        var outrep;
+        out = await currency.getMoney(member.id,db);
+        outrep = await currency.getReputation(member.id,db);
         //console.log("MEMBER ID: "+member.id);
         
         
 
-        message.channel.sendMessage(theyyou+" have "+out+" "+currency.textPlural());
+        message.channel.sendMessage(theyyou+" have "+out+" "+currency.textPlural()+"\n"+theyyou+" have "+outrep+" reputation");
 
 
         

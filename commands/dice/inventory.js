@@ -42,7 +42,7 @@ class InventoryCommand extends commando.Command {
         const itemid = args.itemsid;
         var id = message.author.id;
 
-        var ch = message.guild;
+        var db = this.client.provider.db;
         
         if(!action)
         {
@@ -54,25 +54,49 @@ class InventoryCommand extends commando.Command {
             
             var resultstring = "";
             resultstring+= "Your inventory:\n\n"
-            var inventory = misc.getInventory(id,ch);
-
+            var inventory = await misc.getInventory(id,db);
             var index = 1;
-            for (var key in inventory.items) {
-                if (inventory.items.hasOwnProperty(key)) {
-                    var element = inventory.items[key];
-                    var item = Item.getItembyID(key);
-                    if(element > 0)
-                    {
-                            resultstring+= index+": "+item.name+": "+item.description+"  x"+element+"\n";
-                            index++;
-                    }
+            for(var i = 0;i<inventory.length;i++){
+                if(inventory[i].amount > 0)
+                {
+                    var item = Item.getItembyID(inventory[i].id);
+                    resultstring+= index+": "+item.name+": "+item.description+"  x"+inventory[i].amount+"\n";
+                    index++;
                 }
             }
+            
             message.channel.sendMessage(resultstring);
         }
         if(action == "use" || action == "u")
         {
-            if(!itemid)
+            var inventory = await misc.getInventory(id,db);
+            
+            var index = 1;
+            for(var i = 0;i<inventory.length;i++){
+                if(inventory[i].amount > 0)
+                {
+                    var item = Item.getItembyID(inventory[i].id);
+                    if(index == parseInt(itemid) || item.name.toLowerCase() == itemid.toLowerCase()){
+                        var result = await item.use(id,db,message);
+                        if(result)
+                        {
+                            await misc.consumeItem(inventory[i].id,id,db);
+                            
+                        }
+                        return;
+                        //return result;
+                        
+                        
+                    }
+                    index++;
+                    //resultstring+= (i+1)+": "+item.name+": "+item.description+"  x"+inventory[i].amount+"\n";
+                    
+                }
+            }
+            message.channel.sendMessage("You don't have any items with that name!");
+            return;
+            
+            /*if(!itemid)
             {
                 message.channel.sendMessage("No item selected");
                 return;
@@ -107,7 +131,7 @@ class InventoryCommand extends commando.Command {
             }
             message.channel.sendMessage("You don't have any items with that name!");
             return;
-
+            */
             
             
 
@@ -120,7 +144,7 @@ class InventoryCommand extends commando.Command {
                 message.channel.sendMessage("No item selected");
                 return;
             }
-            var inventory = misc.getInventory(id,ch);
+            var inventory = misc.getInventory(id,db);
             
 
             for (var key in inventory.items) {
@@ -136,7 +160,7 @@ class InventoryCommand extends commando.Command {
                             return;
                         }
                         inventory.items[key]--;
-                        currency.changeBalance(id,item.sellprice,"dollar",ch);
+                        currency.addMoney(id,item.sellprice,db);
                         message.channel.sendMessage("You sold your item for "+item.sellprice+" "+currency.textPlural());
                         return;
                     }

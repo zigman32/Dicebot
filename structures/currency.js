@@ -1,4 +1,5 @@
 const commando = require('discord.js-commando');
+const Database = require('./database');
 
 class Currency {
 	
@@ -9,35 +10,26 @@ class Currency {
         var balance = out + amount;
         ch.settings.set("CURRENCY_"+type+"_"+user,balance);
 	}
-	static addReputation(amount,user,ch){
-		Currency.changeBalance(user,amount,"reputation",ch);
+	static async addMoney(user,amount,db){
+		return Database.changeMoney(user,amount,db);
 	}
 
-	static getReputation(user,ch){
-		return Currency.getBalance(user,"reputation",ch);
+	static async removeMoney(user,amount,db){
+		return Database.changeMoney(user,-amount,db);
 	}
 	
-	static addBalance(user, amount) {
-		Currency.changeBalance(user, amount);
+	static async getMoney(user,db){
+		var coin = Database.getMoney(user,db);
+		//console.log("Coin: "+coin);
+		return coin;
+	}
+	
+	static addReputation(amount,user,db){
+		return Database.changeReputation(user,amount,db);
 	}
 
-	static removeBalance(user, amount) {
-		Currency.changeBalance(user, -amount);
-	}
-
-	static getBalance(user,type,ch) {
-		var out = ch.settings.get("CURRENCY_"+type+"_"+user,"null");
-        if(out == "null")
-        {
-            //console.log("Hello my friend");
-            
-            ch.settings.set("CURRENCY_"+type+"_"+user,0);
-			out = 0;
-			//out = ch.settings.get("DICE_dice_"+id,"null");
-            
-        }
-
-		return parseInt(out);
+	static getReputation(user,db){
+		return Database.getReputation(user,db);
 	}
 
 	

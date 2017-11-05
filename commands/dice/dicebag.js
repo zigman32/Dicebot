@@ -41,7 +41,8 @@ class DicebagCommand extends commando.Command {
         const diceid = args.diceid;
         var id = message.author.id;
 
-        var ch = message.guild;
+        //var ch = message.guild;
+        var db = this.client.provider.db;
         
         if(!action)
         {
@@ -49,25 +50,36 @@ class DicebagCommand extends commando.Command {
             return;
         }
         
+        var test = misc.getormakedice(id,db);//IF THIS IS THE USER'S FIRST DICE INTERACTION
+
         if(action == "view" || action == "check"){
             if(diceid < 0)
             {
                 message.channel.sendMessage("Please specify which dice you want to view (0 for 1-10, 1 for 11-20, etc)");
                 return;
             }
+
             var spot = diceid;
             
             var dicemin = spot*10;
             var dicemax = spot*10+10;
 
-            var resultstring = "";
-            resultstring+= "List of dice in your dice bag: (From "+(dicemin+1)+" to "+dicemax+") \n\n"
-            var dicebag = misc.getDicebag(id,ch);
 
-            for(var i = dicemin;i<dicebag.dice.length && i<dicemax ;i++){
-                resultstring+= (i+1)+":"+mydice.toDice(dicebag.dice[i]).read()+"\n";
+            var resultstring = "";
+            resultstring+= "List of dice in your dice bag: (From "+(dicemin+1)+" to "+dicemax+") \n"
+            var dicebag = await misc.getDicebag(id,db);
+            var activeDice = await misc.getActiveDiceIndex(id,db);
+            //console.log("DICEBAG: "+dicebag);
+            resultstring+= "Active dice: "+activeDice/*+" ( "+dicebag[activeDice-1].read()+" )"*/+"\n\n"
+
+            for(var i = dicemin;i<dicebag.length && i<dicemax ;i++){
+                var astring = "";
+                if(i+1 == activeDice){
+                    astring = "**";
+                }
+                resultstring+= (i+1)+":"+dicebag[i].read(astring)+"\n";
             }
-            message.channel.sendMessage(resultstring);
+            message.channel.send(resultstring);
         }
         if(action == "swap" || action == "switch")
         {
@@ -76,21 +88,21 @@ class DicebagCommand extends commando.Command {
                 message.channel.sendMessage("No dice selected");
                 return;
             }
-            var sdice = diceid-1;
-            var dicebag = misc.getDicebag(id,ch);
-            if(sdice >= dicebag.dice.length || sdice < 0)
+            var maxdice = await misc.getMaxDiceIndex(id,db);
+            if(maxdice < diceid)
+            
+
+            //var sdice = diceid-1;
+            if(maxdice < diceid || diceid < 1)
             {
                 message.channel.sendMessage("Invalid dice selected");
                 return;
             }
-            var dicea = misc.getormakedice(id,ch);
-            var diceb = mydice.toDice(dicebag.dice[sdice]);
-            console.log("dicea: "+dicea.read());
-            console.log("diceb: "+diceb.read());
-            
-            misc.setdice(diceb,id,ch);
-            dicebag.dice[sdice] = dicea;
-            misc.setDiceBag(dicebag,id,ch);
+            await misc.setActiveDiceIndex(id,diceid,db);
+
+
+
+            var diceb = await misc.getormakedice(id,db);
             message.channel.sendMessage("Set active dice to: "+diceb.read());
             
 
@@ -103,16 +115,28 @@ class DicebagCommand extends commando.Command {
                 message.channel.sendMessage("No dice selected");
                 return;
             }
-            var sdice = diceid-1;
-            var dicebag = misc.getDicebag(id,ch);
-            if(sdice >= dicebag.dice.length || sdice < 0)
+            var maxdice = await misc.getMaxDiceIndex(id,db);
+            if(maxdice < diceid)
+            
+
+            //var sdice = diceid-1;
+            if(maxdice < diceid || diceid < 1)
             {
                 message.channel.sendMessage("Invalid dice selected");
                 return;
             }
+            
+            var adiceid = await misc.getActiveDiceIndex(id,db);
+            if(adiceid == diceid){
+                message.channel.sendMessage("You can't delete your active dice!");
+                return;
+            }
 
+
+            var deldice = await misc.getDiceByIndex(id,diceid,db);
+            message.channel.sendMessage("Deleteing dice: "+deldice.read()+"\nAre you sure about that? (respond with ``confirm`` to confirm)");
+            //return;
             var value;
-            message.channel.sendMessage("Deleteing dice: "+mydice.toDice(dicebag.dice[sdice]).read()+"\nAre you sure about that? (respond with ``confirm`` to confirm)");
             const responses = await message.channel.awaitMessages(msg2 => msg2.author.id === message.author.id, {
                 maxMatches: 1,
                 time: 30000
@@ -123,10 +147,9 @@ class DicebagCommand extends commando.Command {
             }
             const lc = value.toLowerCase();
             if(lc === 'confirm'){ 
-                dicebag.dice.splice(sdice,1);
-                misc.setDiceBag(dicebag,id,ch);
-                currency.changeBalance(id,20,"dollar",ch);
-                message.channel.sendMessage("You sold your dice for 20 "+currency.textPlural()+"");
+                misc.deleteDiceByIndex(id,diceid,db);
+                currency.addMoney(id,20,db);
+                message.channel.send("You sold your dice for 20 "+currency.textPlural()+"");
                 return;
             }else{
                 message.channel.sendMessage("Deletion canceled.");

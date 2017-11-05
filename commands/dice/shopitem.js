@@ -26,8 +26,8 @@ class ShopItem {
         return "this is an item";
     }
 
-    use(id,ch,message,bonus = 0){
-        this.execute(id,ch,message,bonus);
+    use(id,db,message,bonus = 0){
+        this.execute(id,db,message,bonus);
     }
 
     

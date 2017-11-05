@@ -29,19 +29,23 @@ class GetCommand extends commando.Command {
     }
 
     async run(message, args) {
-        const { key,value } = args;
+        const { key } = args;
 
         if(this.client.isOwner(message.author))
         {
 
             var ch = message.guild;
             
-            var out;
-
-            out = ch.settings.get(key,"null");
             
 
-            message.channel.sendMessage(key+" has value: "+out);
+            this.client.provider.db.get(key).then(function(res){
+                for(var col in res) {
+                    var value = res[col]
+                
+                    message.channel.send(col+":"+value);
+                }
+            }).catch(err => message.channel.send(err));
+            
 
         }
     }

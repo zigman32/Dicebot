@@ -1,4 +1,5 @@
 const misc = require('../misc.js');
+const Database = require('../../structures/database');
 
 
 class Dice {
@@ -43,14 +44,19 @@ class Dice {
      
     }
 
-    constructor(asize = 0, afaces = []) {
+    constructor(aid = 0,asize = 0, afaces = []) {
+        this.id = aid;
         this.size = asize;
         this.faces = afaces;
     }
     
-    read(){
-
+    read(add = ""){
+        
         var out = "";
+        if(add == "**")
+        {
+            out+="***";    
+        }
         var i;
         var tscore = 0;
         for(var i = 0;i<this.size;i++)
@@ -60,17 +66,16 @@ class Dice {
             if(i != this.size-1)
                 out = out + ",";
         }
-        out+=" **(total: "+tscore+")**";
+        if(add == "**")
+            {out+=" (total: "+tscore+")***";}
+        else
+            {out+=" **(total: "+tscore+")**";}
         return out;
     }
 
-    axeSide(){
-        var s = this.axed;
-        if(typeof s === "undefined")
-            this.axed = false;
-        if(this.axed)
-            return false;
-
+    axeSide(db){
+        
+        
         var sside = Dice.rint(this.faces.length);
         this.faces.splice(sside,1);
         this.size--;
@@ -124,16 +129,11 @@ class Dice {
         this.faces = obj;
         this.size = obj.length;
     }
-    getBoosts(type){
-        if (typeof this.boosts === "undefined"){
-            this.boosts = {};
-        }
-        if (typeof this.boosts[type] === "undefined"){
-            this.boosts[type] = 0;
-        }
-        return this.boosts[type];
+    async getBoosts(type,db){
+
+        return await Database.getDiceBoosts(this.id,type,db)
     }
-    addMod(mod){
+    async addMod(mod,db){
         var choices = [];
         for(var i = 0;i<this.size;i++){
             if(this.validMod(i,mod))
@@ -143,7 +143,9 @@ class Dice {
         }
         if(choices.length <= 0)
             return false;
-        this.faces[choices[Dice.rint(choices.length)]].mods.push(mod);
+        var findex = choices[Dice.rint(choices.length)]
+        Database.addMod(this.id,(findex+1),mod,db);
+        this.faces[findex].mods.push(mod);//NO NEED TO DOUBLE GET
         return true;
     }
 
@@ -201,21 +203,13 @@ class Dice {
         return true;
 
     }
-    augment(num,space = 0,max = 99999){
+    async augment(num,db,space = 0,max = 99999){
 
-        if (typeof this.boosts === "undefined"){
-            this.boosts = {};
-        }
         
         var left;
         if(space != 0)
         {
-            
-            if (typeof this.boosts[space] === "undefined"){
-                this.boosts[space] = 0;
-            }
-            
-            var done = this.boosts[space];
+            var done = await Database.getDiceBoosts(this.id,space,db);
             left = Math.min(num,max-done);
         }else
         {
@@ -223,48 +217,25 @@ class Dice {
         }
         for(var i = 0;i<left;i++)
         {
-            var j = Dice.rint(this.size);
-            this.faces[j].value = this.faces[j].value+1;
+            await Database.addOneToRandomFace(this.id,db);
         }
         if(space != 0)
         {
-            this.boosts[space] = this.boosts[space]+left;
-            return true;
+            await Database.addToDiceBoosts(this.id,space,left,db);
         }
-        return false;
+        return left > 0;
     }
-    addEmoji(name,difficulty){
+    async addEmoji(name,difficulty,db){
 
-        difficulty = "level"+difficulty;
-        if (typeof this.emojilist === "undefined"){
-            this.emojilist = {};
-        }
-        if (typeof this.emojilist[difficulty] === "undefined"){
-            this.emojilist[difficulty] = [];
-        }
+        return await Database.addToEmojiDefeated(this.id,name,difficulty,db);
 
-        if(this.emojilist[difficulty].includes(name))
-        {
-            return false;
-        }
-
-        this.emojilist[difficulty].push(name);
-
-        console.log("LIST: "+this.emojilist[difficulty]);
-        return true;
+        
 
 
     }
 
-    getEmojiCount(difficulty){
-        difficulty = "level"+difficulty;
-        if (typeof this.emojilist === "undefined"){
-            this.emojilist = {};
-        }
-        if (typeof this.emojilist[difficulty] === "undefined"){
-            this.emojilist[difficulty] = [];
-        }
-        return this.emojilist[difficulty].length;
+    async getEmojiCount(difficulty,db){
+        return await Database.getNumberEmojiDefeated(this.id,difficulty,db);
 
     }
 
@@ -501,7 +472,6 @@ class Dice {
             bonus = {type: "typebias", value: thetype};
             modlevel = {values:["typebias1"],weights:[100]};
             modnum = {values:[0,1,2,3],weights:[30,65,5,0]};
-            //console.log("TYPEBIAS1");
             
             badchance = 0;           
         }
@@ -511,7 +481,6 @@ class Dice {
                 bonus = {type: "typebias", value: thetype};
                 modlevel = {values:["typebias2"],weights:[100]};
                 modnum = {values:[0,1,2,3],weights:[10,70,15,5]};
-                //console.log("TYPEBIAS2");
                 badchance = 0;           
             }
         if(dicetype.includes("adv1")){
@@ -880,7 +849,6 @@ class Dice {
                 type = Dice.typenametonick(Dice.typenumtoname(typebias));
 
             var bad = false;
-            //console.log("BADCHANCE: "+badchance);
             if(Math.random() < badchance)
                 bad = true;
             
@@ -1429,6 +1397,44 @@ class Dice {
             
         }
         this.size = res.length;
+        
+    }
+    static toNextUpgrade(num,difficulty){
+        var tarr;
+        switch(difficulty){
+            case 4:
+                tarr = [1,2,3,4,5,6,7,8,9];
+                break;
+            case 3:
+                tarr = [1,3,5,8,11,14,17,20,23,26];
+            case 2:
+                tarr = [2,4,7,10,14,18,22,26,30,34];
+                break;
+            case 1:
+                tarr = [3,6,10,14,19,24,29,34,39,44]
+                break;
+            default:
+                return {upgrade: false, tonext: 0};
+        }
+        var up;
+        if(tarr.indexOf(num) < 0)
+            up = false;
+        else
+            up = true;
+
+        var next;
+        var i;
+        for(i = 0;i<tarr.length;i++){
+            if(num<tarr[i])
+                break;
+        }
+        if(i == tarr.length)
+            next = 0;
+        else
+            next = tarr[i]-num;
+        return {upgrade:up,tonext:next};
+
+
         
     }
 

@@ -3,6 +3,7 @@ const mydice = require('./diceclass.js');
 const misc = require('../misc.js');
 const item = require('./item');
 const dicevs = require('./dicevs');
+const Database = require('../../structures/database');
 
 class ViewdiceCommand extends commando.Command {
     constructor(client){
@@ -35,7 +36,8 @@ class ViewdiceCommand extends commando.Command {
         if(!user)
             user = message.author;
 
-        var ch = message.guild;
+        var db = this.client.provider.db;
+            
 
         
         var id = user.id;
@@ -44,17 +46,23 @@ class ViewdiceCommand extends commando.Command {
 
         if(message.mentions.users.first() || member == false)
         {
-            if(member == false){
-                
-                var dice = misc.getormakedice(message.author.id,ch);
-                message.channel.sendMessage("That user has the following dice: \n"+dice.read());
-                return;
+            var diceownerid;
+            if(member == false)
+            {
+                diceownerid = message.author.id;
+            }else{
+                diceownerid = message.mentions.users.first().id
             }
-            var dice = misc.getormakedice(message.mentions.users.first().id,ch);
-            message.channel.sendMessage("That user has the following dice: \n"+dice.read());
+            
+            var dice = await misc.getormakedice(id,db);
+            //dice
+            message.channel.send("That user has the following dice: \n"+dice.read());
+            
+            
+            
         }
         else{
-            if(misc.getEmoji(member) != false && misc.hasItem("scope",id,ch)){
+            if(misc.getEmoji(member) != false && await misc.hasItem("scope",id,db)){
                 message.channel.sendMessage("Use a "+item.getItembyID("scope").name+"? (respond with yes to use)");
                 var value;
                 //var use = true;
@@ -69,8 +77,8 @@ class ViewdiceCommand extends commando.Command {
                 if(lc === 'yes'){ 
                     var ostuff = dicevs.isValidOponent(member);
 
-                    var dice = misc.getormakedice(ostuff.id,ch,ostuff.dtype);
-                    misc.consumeItem("scope",id,ch);
+                    var dice = await misc.getormakedice(ostuff.id,db,ostuff.dtype);
+                    await misc.consumeItem("scope",id,db);
                     message.channel.sendMessage("That user has the following dice: \n"+dice.read());
                     return;
                 }else{

@@ -22,17 +22,17 @@ class CollectionCommand extends commando.Command {
 
         var id = message.author.id;
 
-        var ch = message.guild;
+        var db = this.client.provider.db;
         
         
             var resultstring = "";
             resultstring+= "List of emoji in your collection: \n\n"
-            var collection = misc.getCollection(id,ch);
+            var collection = await misc.getCollection(id,db);
 
-            for(var i = 0;i<collection.items.length;i++){
-                resultstring+= collection.items[i];
+            for(var i = 0;i<collection.length;i++){
+                resultstring+= ":"+collection[i]+":";
             }
-            message.channel.sendMessage(resultstring);
+            message.channel.send(resultstring);
         
 
 

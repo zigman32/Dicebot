@@ -15,20 +15,23 @@ class DailyCommand extends commando.Command {
     }
 
     async run(message, args) {
-        var ch = message.guild;
+        //var ch = message.guild;
+        var db = this.client.provider.db;
+        
 
         var id = message.author.id;
 
-        if(misc.daily("payout",id,ch)){
+        if(await misc.daily("payout",id,db)){
             var payout = 60+Math.floor(Math.random() * (25));
             
-            currency.changeBalance(id,payout,"dollar",ch);
-            message.channel.sendMessage("*You have gained "+payout+" dicebux!*");
+            //currency.changeBalance(id,payout,"dollar",ch);
+            currency.addMoney(id,payout,db);
+            message.channel.send("*You have gained "+payout+" dicebux!*");
 
 
         }else{
 
-            message.channel.sendMessage("You already received your payout today, try again tomorow.");
+            message.channel.send("You already received your payout today, try again tomorow.");
 
         }
 

@@ -28,16 +28,18 @@ class ShopCommand extends commando.Command {
     
     async run(message, args) {
         const item = args.item;
-        var ch = message.guild;
+        //var db = message.guild;
         var id = message.author.id;
+        var db = this.client.provider.db;
         
-
-        var awealth = currency.getBalance(id,"dollar",ch);
-
+        
+        var awealth = await currency.getMoney(id,db);
+        
+        
         var basicitems = ShopCommand.loadItems();
         var specialitems = ShopCommand.loadSpecialItems();
         var items = basicitems.concat(specialitems);
-        var reputation = currency.getReputation(id,ch);
+        var reputation = await currency.getReputation(id,db);
 
         
         
@@ -47,7 +49,7 @@ class ShopCommand extends commando.Command {
 
             var resultstring = "";
             resultstring = resultstring+"Here's a list of items for sale: \n";
-            resultstring = resultstring+"Current reputation: "+currency.getReputation(id,ch)+"\n\n";
+            resultstring = resultstring+"Current reputation: "+reputation+"\n\n";
             for(var i = 0;i<basicitems.length;i++){
                 if(reputation >= basicitems[i].reputationreq)
                     resultstring = resultstring+basicitems[i].name+" ("+basicitems[i].price+" "+currency.textPlural()+"): "+basicitems[i].description+"\n\n";
@@ -63,7 +65,7 @@ class ShopCommand extends commando.Command {
                 
             }
             
-            message.channel.sendMessage(resultstring);
+            message.channel.send(resultstring);
 
 
 
@@ -79,13 +81,13 @@ class ShopCommand extends commando.Command {
                 if(items[i].name.toLowerCase() == item.toLowerCase() && reputation >= items[i].reputationreq)
                 {
                     
-                    var awealth = currency.getBalance(id,"dollar",ch);
+                    //var awealth = currency.getBalance(id,"dollar",db);
                     if(awealth < items[i].price){
-                        message.channel.sendMessage("You can't afford that item. You need "+items[i].price+" "+currency.textPlural());
+                        message.channel.send("You can't afford that item. You need "+items[i].price+" "+currency.textPlural());
                     }else
                     {
-                        currency.changeBalance(id,-items[i].price,"dollar",ch);
-                        items[i].use(id,ch,message);
+                        currency.removeMoney(id,items[i].price,db);
+                        items[i].use(id,db,message);
                     }
 
 
@@ -94,7 +96,7 @@ class ShopCommand extends commando.Command {
             }
             if(i == items.length)
             {
-                message.channel.sendMessage("I don't have that item: "+item);
+                message.channel.send("I don't have that item: "+item);
             }
         }
         
@@ -108,42 +110,42 @@ class ShopCommand extends commando.Command {
 
     static loadItems(){
         var titems = [];
-        titems.push(new shopitem("Basic Dice Box",100,"Adds a new basic dice to your dice bag.",function(id,ch,message,bonus){
+        titems.push(new shopitem("Basic Dice Box",100,"Adds a new basic dice to your dice bag.",async function(id,db,message,bonus){
             
             
 
             var newdice = new Dice();
             newdice.generate();
 
-            misc.addToDicebag(newdice,id,ch);
+            await misc.addToDicebag(newdice,id,db);
 
-            message.channel.sendMessage("*You open your box and receive a dice with the following stats:* \n\n"+newdice.read()+"\n it has been placed in your dice bag!");
+            message.channel.send("*You open your box and receive a dice with the following stats:* \n\n"+newdice.read()+"\n it has been placed in your dice bag!");
             
 
 
             
         }));
-        titems.push(new shopitem("Basic Dice Pack",200,"Gives you a choice of 3 basic dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+        titems.push(new shopitem("Basic Dice Pack",150,"Gives you a choice of 3 basic dice. Choose 1 to add to your bag.",async function(id,db,message,bonus){
 
-            ShopCommand.genericPack(["rare0"],[100],3,id,ch,message);
+            ShopCommand.genericPack(["user"],[100],3,id,db,message);
 
         }));
 
-        titems.push(new shopitem("Beginer\'s Dice Pack",400,"Gives you a choice of 3 common dice with a chance of a rare dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+        titems.push(new shopitem("Beginer\'s Dice Pack",400,"Gives you a choice of 3 common dice with a chance of a rare dice. Choose 1 to add to your bag.",async function(id,db,message,bonus){
                
-            ShopCommand.genericPack(["rare0","rare1"],[90,10],3,id,ch,message);
+            ShopCommand.genericPack(["rare0","rare1"],[90,10],3,id,db,message);
                 
         },50));
 
-        titems.push(new shopitem("Intermidiate Dice Pack",1000,"Gives you a choice of 3 common dice with a increased chance of a rare dice and a chance at super rare dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+        titems.push(new shopitem("Intermidiate Dice Pack",1000,"Gives you a choice of 3 common dice with a increased chance of a rare dice and a chance at super rare dice. Choose 1 to add to your bag.",async function(id,db,message,bonus){
             
-            ShopCommand.genericPack(["rare0","rare1","rare2"],[60,30,10],3,id,ch,message);
+            ShopCommand.genericPack(["rare0","rare1","rare2"],[60,30,10],3,id,db,message);
               
         },200));
 
-        titems.push(new shopitem("Advanced Dice Pack",3000,"Gives you a choice of 3 rare dice with a increased chance of a super rare dice and a low chance at ultra rare dice. Choose 1 to add to your bag.",async function(id,ch,message,bonus){
+        titems.push(new shopitem("Advanced Dice Pack",3000,"Gives you a choice of 3 rare dice with a increased chance of a super rare dice and a low chance at ultra rare dice. Choose 1 to add to your bag.",async function(id,db,message,bonus){
                              
-            ShopCommand.genericPack(["rare1","rare2","rare3"],[75,20,5],3,id,ch,message);
+            ShopCommand.genericPack(["rare1","rare2","rare3"],[75,20,5],3,id,db,message);
                                   
         },800));
     
@@ -165,13 +167,13 @@ class ShopCommand extends commando.Command {
         var rng= Srandom(d.getTime());
         var todaystype = Math.floor(rng()*18);
 
-        titems.push(new shopitem("Basic "+ShopCommand.capitalizeFirstLetter(Dice.typenumtoname(todaystype))+" Box",200,"Adds a new basic dice to your dice bag (nearly) guaranteed to have the "+Dice.typenumtoname(todaystype)+" type. The type changes every day.",function(id,ch,message){
+        titems.push(new shopitem("Basic "+ShopCommand.capitalizeFirstLetter(Dice.typenumtoname(todaystype))+" Box",200,"Adds a new basic dice to your dice bag (nearly) guaranteed to have the "+Dice.typenumtoname(todaystype)+" type. The type changes every day.",function(id,db,message){
             
             var newdice = new Dice();
             var othertype = Dice.rint(18);
             newdice.generate("user_TYPE/"+todaystype+"/"+othertype);
-            misc.addToDicebag(newdice,id,ch);
-            message.channel.sendMessage("*You open your box and receive a dice with the following stats:* \n\n"+newdice.read()+"\n it has been placed in your dice bag!");
+            misc.addToDicebag(newdice,id,db);
+            message.channel.send("*You open your box and receive a dice with the following stats:* \n\n"+newdice.read()+"\n it has been placed in your dice bag!");
             
         }));
         //------------------------
@@ -185,9 +187,9 @@ class ShopCommand extends commando.Command {
                 biastype = Math.floor(rng()*18);
 
             var biasname = Dice.typenumtoname(biastype);
-            titems.push(new shopitem(ShopCommand.capitalizeFirstLetter(biasname)+" Hate Pack",550,"Do you hate "+ShopCommand.capitalizeFirstLetter(biasname)+" types? Then this is the pack for you.",async function(id,ch,message,bonus){
+            titems.push(new shopitem(ShopCommand.capitalizeFirstLetter(biasname)+" Hate Pack",550,"Do you hate "+ShopCommand.capitalizeFirstLetter(biasname)+" types? Then this is the pack for you.",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0","rare0_TYPEBIAS1/"+biastype,"rare1_TYPEBIAS2/"+biastype,"rare2_TYPEBIAS2/"+biastype],[30,50,15,5],3,id,ch,message);
+                ShopCommand.genericPack(["rare0","rare0_TYPEBIAS1/"+biastype,"rare1_TYPEBIAS2/"+biastype,"rare2_TYPEBIAS2/"+biastype],[30,50,15,5],3,id,db,message);
                                     
             },180));
 
@@ -199,53 +201,53 @@ class ShopCommand extends commando.Command {
         if(rng()<odds)
         {
             
-            titems.push(new shopitem("Glowing Pack",5000,"Mostly commons and rares in here, but if you get lucky...",async function(id,ch,message,bonus){
-                ShopCommand.genericPack(["rare0","rare1","rare4"],[87,10,3],3,id,ch,message);                   
+            titems.push(new shopitem("Glowing Pack",5000,"Mostly commons and rares in here, but if you get lucky...",async function(id,db,message,bonus){
+                ShopCommand.genericPack(["rare0","rare1","rare4"],[87,10,3],3,id,db,message);                   
             },2000));
         }
         //-----------------
         var odds = 0.2;
         if(rng()<odds)
         {  
-            titems.push(new shopitem("Survivor pack",1300,"There are some things you just can't defeat. At least, untill you buy this pack.",async function(id,ch,message,bonus){
+            titems.push(new shopitem("Survivor pack",1300,"There are some things you just can't defeat. At least, untill you buy this pack.",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0","rare1","rare2","rare0_STURDY1","rare1_STURDY1","rare2_STURDY1","rare0_STURDY_ALL","rare1_STURDY_ALL","rare2_STURDY_ALL"],[80*12,20*12,5*12,80*6,20*6,5*6,80*1,20*1,5*1],3,id,ch,message);               
+                ShopCommand.genericPack(["rare0","rare1","rare2","rare0_STURDY1","rare1_STURDY1","rare2_STURDY1","rare0_STURDY_ALL","rare1_STURDY_ALL","rare2_STURDY_ALL"],[80*12,20*12,5*12,80*6,20*6,5*6,80*1,20*1,5*1],3,id,db,message);               
             },200));
         }
         //-----------------
         var odds = 0.3;
         if(rng()<odds)
         {  
-            titems.push(new shopitem("Slim pack",300,"Damn, these dice are SLIM.",async function(id,ch,message,bonus){
+            titems.push(new shopitem("Slim pack",300,"Damn, these dice are SLIM.",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["slim1","slim2"],[95,5],3,id,ch,message);               
+                ShopCommand.genericPack(["slim1","slim2"],[95,5],3,id,db,message);               
             },100));
         }
 
         var odds = 0.1;
         if(rng()<odds)//TODO
         {  
-            titems.push(new shopitem("Advantageous Pack",5000,"Give yourself that little bit of extra advantage.",async function(id,ch,message,bonus){
+            titems.push(new shopitem("Advantageous Pack",5000,"Give yourself that little bit of extra advantage.",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0_adv1","rare1_adv1","rare2_adv1","rare3_adv1"],[30,57,10,3],3,id,ch,message);               
+                ShopCommand.genericPack(["rare0_adv1","rare1_adv1","rare2_adv1","rare3_adv1"],[30,57,10,3],3,id,db,message);               
             },1400));
         }
 
         var odds = 0.05;
         if(rng()<odds)
         {  
-            titems.push(new shopitem("Ultimate type pack",8000,"Are you sick of loosing type matchups?",async function(id,ch,message,bonus){
+            titems.push(new shopitem("Ultimate type pack",8000,"Are you sick of loosing type matchups?",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0_ult1","rare1_ult1","rare2_ult1","rare3_ult1"],[30,57,10,3],3,id,ch,message);               
+                ShopCommand.genericPack(["rare0_ult1","rare1_ult1","rare2_ult1","rare3_ult1"],[30,57,10,3],3,id,db,message);               
             },2000));
         }
 
         var odds = 0.1;
         if(rng()<odds)
         {  
-            titems.push(new shopitem("Weighted dice pack",1200,"These dice seem a bit... lopsided. That's probably a good thing though... right?",async function(id,ch,message,bonus){
+            titems.push(new shopitem("Weighted dice pack",1200,"These dice seem a bit... lopsided. That's probably a good thing though... right?",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0_wgt1","rare1_wgt1","rare2_wgt1"],[63,30,7],3,id,ch,message);               
+                ShopCommand.genericPack(["rare0_wgt1","rare1_wgt1","rare2_wgt1"],[63,30,7],3,id,db,message);               
             },600));
         }
         
@@ -264,7 +266,7 @@ class ShopCommand extends commando.Command {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    static async genericPack(rarities,weights,dnum,id,ch,message){
+    static async genericPack(rarities,weights,dnum,id,db,message){
         //const dnum = 3;
         var darr = [];
         
@@ -313,7 +315,7 @@ class ShopCommand extends commando.Command {
             darr.push(dice);
         }
         resultstring+= "\n type in a number within 1 minute to choose a dice. Otherise one will be chosen at random.\n"
-        message.channel.sendMessage(resultstring);
+        message.channel.send(resultstring);
 
         resultstring = "";
         var value;
@@ -341,7 +343,7 @@ class ShopCommand extends commando.Command {
                 num--;
                 
             }else{
-                message.channel.sendMessage("Invalid choice, please try again.");
+                message.channel.send("Invalid choice, please try again.");
                 again = true;
                 //console.log("Let's go again");
             }
@@ -349,9 +351,9 @@ class ShopCommand extends commando.Command {
         }while(again);
         //console.log("Out of the loop!");
 
-        message.channel.sendMessage(resultstring+"Dice number "+(num+1)+" ("+darr[num].read()+") was added to your dicebag!");
+        message.channel.send(resultstring+"Dice number "+(num+1)+" ("+darr[num].read()+") was added to your dicebag!");
 
-        misc.addToDicebag(darr[num],id,ch);
+        misc.addToDicebag(darr[num],id,db);
 
 
         //-----------end basic dice pack code

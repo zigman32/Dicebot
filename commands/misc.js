@@ -1,7 +1,8 @@
 const commando = require('discord.js-commando');
-const mydice = require('./dice/diceclass.js')
+const Dice = require('./dice/diceclass.js');
 const crypto = require('crypto');
 const dsemoji = require('discord-emoji');
+const Database = require('../structures/database');
 
 class Misc {
     
@@ -14,70 +15,68 @@ class Misc {
         return hash;
     }
 
-    static daily(string,uid,ch){
+    static async daily(key,uid,db,extra = "0"){
         var ret = false;
         var lastday;
-        lastday = ch.settings.get("DAILY_"+string+"_"+uid,-1);
-        
-        if(lastday == -1)
+
+        var days = await Database.getDaily(uid,key,db);
+        if(days.lastday == days.today)
         {
-            console.log("new daily id ");
-            ch.settings.set("DAILY_"+string+"_"+uid,-1);
+            return false;
+        }else{
+            Database.setDaily(uid,key,db,extra);
+            return true;
         }
-        
-        var today = new Date();
-        var dd = today.getDate();
-        if(dd != lastday)
-        {
-            ret = true;
-        }
-        ch.settings.set("DAILY_"+string+"_"+uid,dd);
-
-        
-        return ret;
     }
 
-    static getHourly(type,uid,ch){
-        var timetill = ch.settings.get("HOURLY_"+type+"_"+uid,0);
-        var d = new Date();
-        return timetill - d.getTime();
+    static async setDailyExtra(key,uid,extra,db){
+        return await Database.updateDaily(uid,key,extra,db);
     }
 
-    static setHourly(type,duration,uid,ch){
-        var d = new Date();
-        ch.settings.set("HOURLY_"+type+"_"+uid,d.getTime()+1000*60*60*duration)
+    static async getDailyExtra(key,uid,db,extra = "0")
+    {
+        await Misc.daily(key,uid,db,extra);
+        var res = await Database.getDaily(uid,key,db);
+        return res.extra;
     }
 
-    static upConsecutive(type,uid,ch){
-        var cconsec = ch.settings.get("CONSECUTIVE_"+type+"_"+uid,0);
-        ch.settings.set("CONSECUTIVE_"+type+"_"+uid,cconsec+1);
-        
-        
+    static async getHourly(type,uid,db){
+        var res = await Database.getHourly(uid,type,db);
+        return (res.lasttime-res.now)*1000;
     }
-    static getConsecutive(type,uid,ch){
-        return ch.settings.get("CONSECUTIVE_"+type+"_"+uid,0);
+
+    static async setHourly(type,duration,uid,db){
+        return await Database.setHourly(uid,duration*60*60,type,db);
     }
-    static breakConsecutive(type,uid,ch){
-        ch.settings.set("CONSECUTIVE_"+type+"_"+uid,0);
+
+    static async upConsecutive(type,uid,db){
+        await Database.upConsecutive(uid,type,db);
+    }
+    static async getConsecutive(type,uid,db){
+        return await Database.getConsecutive(uid,type,db);
+    }
+    static async breakConsecutive(type,uid,db){
+        await Database.breakConsecutive(uid,type,db);
     }
     
 
     static ritem(array){
         return array[Math.floor(Math.random()*array.length)];
     }
-    static getormakedice(id,ch,dtype = "user"){
-        var dbdice = new mydice();
+    static async getormakedice(id,db,dtype = "user"){
+        
+
 
         if(dtype == "dicebot"){
-            var dice = new mydice();
+            
+            
+            var dice = new Dice();
             dice.generate("emoji0");
-            
-            
             return dice;
         }
         if(dtype == "gun")
         {
-            var dice = new mydice();
+            var dice = new Dice();
             dice.setFaces([{
             type:"gun",value:1},{
             type:"gun",value:1},{
@@ -87,91 +86,94 @@ class Misc {
             type:"fire",value:20}]);
             return dice;
         }
+
+        var dice = await Database.getActiveDice(id,db,dtype);
         
-        dbdice = ch.settings.get("DICE_dice1_"+id,"null");
-        if(dbdice == "null")
+        return Dice.toDice(dice);
+       
+    }
+
+    
+
+    static addToDicebag(dice,id,db){
+        Database.registerUserDice(dice,id,db);
+    }
+
+    static getCollection(id,db){
+        return Database.getEmojiCollection(id,db);
+        
+    }
+
+    
+    static addToCollection(item,id,db){
+        return Database.addToCollection(id,item,db);
+    }
+
+    static async getDicebag(id,db){
+        return await Database.getAllDice(id,db);
+    }
+
+    static async getActiveDiceIndex(id,db){
+        return await Database.getActiveDiceIndex(id,db);
+    }
+
+    static async getMaxDiceIndex(id,db){
+        return await Database.getMaxDiceIndex(id,db);
+    }
+
+    static async setActiveDiceIndex(id,index,db){
+        return await Database.updateActiveDiceIndex(id,index,db);
+    }
+
+    static async getDiceByIndex(userid,index,db){
+        return Database.getDiceByIndex(userid,index,db);
+    }
+
+    static async deleteDiceByIndex(userid,index,db){
+        return Database.deleteDiceByIndex(userid,index,db);
+    }
+
+    static async getRoulette(db){
+        if(await Misc.daily("newroulette","server",db))
         {
-            var dbdice = new mydice();
-            
-            dbdice.generate(dtype);
-            ch.settings.set("DICE_dice1_"+id,dbdice);
-            dbdice = ch.settings.get("DICE_dice1_"+id,"null");
-            
+            return false;
         }
+        var res = await Database.getRoulette(db);
+        var items = [];
+        const Rouletteitem = require("./dice/rouletteclass");
+        for(var i = 0;i<res.length;i++){
+            items.push(new Rouletteitem(res[i].rouletteid,res[i].extra));
+        }
+        return items;
+    }
+
+    static async setRoulette(roulette,db){
+        return await Database.setRoulette(roulette,db);
+    }
+
+    static async getInventory(id,db){
+        return await Database.getAllItems(id,db);
+    }
+    
+
+    
+
+    static async addToInventory(item,uid,db,amount=1){
+        return await Database.addItem(uid,item,amount,db);
+    }
+
+    static async hasItem(item,id,db){
+        var res = await Database.getItemQuantity(id,item,db);
+        if(res.amount > 0)
+        {
+            return true;
         
-        var dice = new mydice();
-        for(var k in dbdice) dice[k]=dbdice[k];
-        return dice;
+        }
+        return false;
     }
 
-    static setdice(dice,id,ch){
-        var dbdice = new mydice();
-        
-        
-        ch.settings.set("DICE_dice1_"+id,dice);
-        
-    }
-
-    static addToDicebag(dice,id,ch){
-        var dicebag = Misc.getDicebag(id,ch);
-        dicebag.dice.push(dice);
-        Misc.setDiceBag(dicebag,id,ch);
-    }
-
-    static getCollection(id,ch){
-        return ch.settings.get("DICE_collection_"+id,{items:[]});
-    }
-
-    static setCollection(collection,id,ch){
-        ch.settings.set("DICE_collection_"+id,collection)
-    }
-
-    static addToCollection(item,id,ch){
-        var collection = Misc.getCollection(id,ch);
-        collection.items.push(item);
-        Misc.setCollection(collection,id,ch);
-    }
-
-    static getDicebag(id,ch){
-        return ch.settings.get("DICE_dicebag_"+id,{dice:[]});
-    }
-
-    static setDiceBag(bag,id,ch){
-        ch.settings.set("DICE_dicebag_"+id,bag)
-    }
-
-    static getInventory(id,ch){
-        return ch.settings.get("DICE_inventory_"+id,{items:{}});
-    }
-
-    static setInventory(inv,id,ch){
-        ch.settings.set("DICE_inventory_"+id,inv)
-    }
-
-    static addToInventory(item,id,ch,amount=1){
-        var inv = Misc.getInventory(id,ch);
-        if(typeof inv.items[""+item] === "undefined")
-            inv.items[""+item] = 0;
-        
-        inv.items[""+item]+=amount;
-        Misc.setInventory(inv,id,ch);
-    }
-
-    static hasItem(item,id,ch){
-        var inv = Misc.getInventory(id,ch);
-        if(typeof inv.items[""+item] === "undefined")
-            inv.items[""+item] = 0;
-        
-        return inv.items[""+item]>0;
-    }
-
-    static consumeItem(item,id,ch){
-        var inv = Misc.getInventory(id,ch);
-        if(typeof inv.items[""+item] === "undefined")
-            inv.items[""+item] = 0;
-        
-        inv.items[""+item]--;
-        Misc.setInventory(inv,id,ch);
+    static async consumeItem(item,id,db,amount = 1){
+        return await Database.looseItem(id,item,amount,db);
     }
 
     static getTrueName(id,ch,client){

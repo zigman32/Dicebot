@@ -14,37 +14,30 @@ class SetCommand extends commando.Command {
                     type: 'string'
 
                     
-                },{
-                    key: 'value',
-                    prompt: 'to what?',
-                    type: 'string'
-
-                    
                 }
             ]
         });
 
     }
-
+    
     hasPermission(msg) {
         return this.client.isOwner(msg.author);
     }
     async run(message, args) {
-        const { key,value } = args;
+        const { key } = args;
 
         if(this.client.isOwner(message.author))
         {
 
             var ch = message.guild;
             
-            ch.settings.set(key,value);
-            var out;
-
-            out = ch.settings.get(key,"null");
-            
-            
-
-            message.channel.sendMessage(key+" has been updated to: "+out);
+            this.client.provider.db.run(key).then(function(res){
+                for(var col in res) {
+                    var value = res[col]
+                
+                    message.channel.send(col+":"+value);
+                }
+            }).catch(errd => message.channel.send(""+errd));
 
         }
     }

@@ -10,16 +10,19 @@ const bot = new commando.Client({
   owner: '168194300423831553'
 });
 
-const path = require('path');
+/*
 const sql = require('sqlite');
 const { CommandoClient, SQLiteProvider } = require('discord.js-commando');
 bot.setProvider(
 	sql.open(path.join(__dirname, 'database.sqlite3')).then(db => new commando.SQLiteProvider(db))
 ).catch(console.error);
-
-
-
-
+*/
+const path = require('path');
+const sqlite = require('sqlite');
+const { CommandoClient, SQLiteProvider } = require('discord.js-commando');
+sqlite.open(path.join(__dirname, "database.sqlite3")).then((db) => {
+  bot.setProvider(new SQLiteProvider(db));
+});
 
 
 bot.registry.registerGroup('responce','Responce');

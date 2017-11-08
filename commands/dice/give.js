@@ -15,12 +15,14 @@ class GiveCommand extends commando.Command {
                 {
                     key: 'member',
                     prompt: 'Who do you want to give your money too',
-                    type: 'member'
+                    type: 'member',
+                    default: ''
                 },
                 {
                     key: 'amount',
                     prompt: 'How much money should you give?',
-                    type: 'integer'
+                    type: 'integer',
+                    default: ''
                 }
             ]
         });
@@ -30,6 +32,10 @@ class GiveCommand extends commando.Command {
     async run(message, args) {
         const amount = args.amount;
         const member = args.member;
+        if(amount == false || membe== false){
+            message.channel.send("Usage: !give @username #\n# is the amount of "+currency.textPlural()+" you want to give.")
+            return;
+        }
         const use = member.user;
         var user = member.user;
         var ch = message.guild;

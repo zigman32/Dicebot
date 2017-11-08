@@ -1,16 +1,23 @@
 {
   "name": "dicebot",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.8.0",
+  "description": "Discord bot/game that lets users collect, trade, upgrade, and battle custom dice",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "keywords": [
+    "discord",
+    "bot"
+  ],
+  "author": "zigman32",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^11.1.0",
+    "discord-emoji": "^1.1.1",
+    "discord.js": "^11.2.1",
     "discord.js-commando": "^0.9.0",
-    "sqlite": "^2.8.0"
+    "seeded-random": "^1.0.1",
+    "sqlite": "^2.8.0",
+    "sqlite3": "^3.1.13"
   }
 }

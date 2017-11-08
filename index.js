@@ -25,11 +25,13 @@ sqlite.open(path.join(__dirname, "database.sqlite3")).then((db) => {
 });
 
 
+bot.registry.registerDefaults();
+bot.registry.unregisterCommand(bot.registry.findCommands("help")[0]);
+
 bot.registry.registerGroup('responce','Responce');
 bot.registry.registerGroup('royal','Royal');
 bot.registry.registerGroup('dice','Dice');
 
-bot.registry.registerDefaults();
 bot.registry.registerCommandsIn(__dirname + "/commands");
 
 

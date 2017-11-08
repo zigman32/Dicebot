@@ -3,7 +3,7 @@ const misc = require('../misc.js');
 const currency = require('../../structures/currency.js');
 const shopitem = require('./shopitem.js');
 const Dice = require('./diceclass.js');
-const Srandom = require('seedrandom');
+const Srandom = require('../seedrandom');
 
 
 class ShopCommand extends commando.Command {
@@ -48,7 +48,7 @@ class ShopCommand extends commando.Command {
         if(!item){
 
             var resultstring = "";
-            resultstring = resultstring+"Here's a list of items for sale: \n";
+            resultstring = resultstring+"Here's a list of items for sale: (Use !buy [itemname] to make a purchase) \n";
             resultstring = resultstring+"Current reputation: "+reputation+"\n\n";
             for(var i = 0;i<basicitems.length;i++){
                 if(reputation >= basicitems[i].reputationreq)

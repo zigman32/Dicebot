@@ -1,14 +1,13 @@
 
 const commando = require('discord.js-commando');
 const currency = require('../../structures/currency.js');
-const Srandom = require('seedrandom');
 const Item = require("./item");
 const misc = require('../misc.js');
 const Dice = require('./diceclass');
 const RouletteItem = require("./rouletteclass");
 
 //const Itembleh = require('./item');
-const MAXSLOTS = 20;
+const MAXSLOTS = 10;
 
 class RouletteCommand extends commando.Command {
     constructor(client){
@@ -71,7 +70,7 @@ class RouletteCommand extends commando.Command {
             
             
 
-            resultstring+="Use !roulette spin to spin the roulette. Possible rewards are:\n\n\n"
+            resultstring+="Use !roulette spin to spin the roulette. The cost to spin increases with each consecutive spin today. Possible rewards are:\n\n\n"
             for(var i = 0;i<roulette.length;i++)
             {
                 

@@ -37,8 +37,8 @@ class DicebagCommand extends commando.Command {
     async run(message, args) {
         
 
-        const action = args.action;
-        const diceid = args.diceid;
+        var action = args.action;
+        var diceid = args.diceid;
         var id = message.author.id;
 
         //var ch = message.guild;
@@ -46,8 +46,8 @@ class DicebagCommand extends commando.Command {
         
         if(!action)
         {
-            message.channel.sendMessage("Commands avaible: View, swap, delete");
-            return;
+            action = "view";
+            //return;
         }
         
         var test = misc.getormakedice(id,db);//IF THIS IS THE USER'S FIRST DICE INTERACTION
@@ -55,8 +55,7 @@ class DicebagCommand extends commando.Command {
         if(action == "view" || action == "check"){
             if(diceid < 0)
             {
-                message.channel.sendMessage("Please specify which dice you want to view (0 for 1-10, 1 for 11-20, etc)");
-                return;
+                diceid = 0;
             }
 
             var spot = diceid;
@@ -66,7 +65,8 @@ class DicebagCommand extends commando.Command {
 
 
             var resultstring = "";
-            resultstring+= "List of dice in your dice bag: (From "+(dicemin+1)+" to "+dicemax+") \n"
+            
+            resultstring+= "List of dice in your dice bag: (From "+(dicemin+1)+" to "+dicemax+") (Use !dicebag view "+(spot+1)+" to view dice past "+dicemax+")\n"
             var dicebag = await misc.getDicebag(id,db);
             var activeDice = await misc.getActiveDiceIndex(id,db);
             //console.log("DICEBAG: "+dicebag);
@@ -79,9 +79,12 @@ class DicebagCommand extends commando.Command {
                 }
                 resultstring+= (i+1)+":"+dicebag[i].read(astring)+"\n";
             }
+            if(diceid == 0)
+                resultstring+= "\nUse !dicebag swap # to swap your active dice to your #th dice";
+            else
+                resultstring+= "\nUse !dicebag sell # to sell your #th dice for 20 "+currency.textPlural();
             message.channel.send(resultstring);
-        }
-        if(action == "swap" || action == "switch")
+        } else if(action == "swap" || action == "switch")
         {
             if(!diceid)
             {
@@ -107,8 +110,7 @@ class DicebagCommand extends commando.Command {
             
 
             
-        }
-        if(action == "delete" || action == "trash")
+        }else if(action == "delete" || action == "sell")
         {
             if(!diceid)
             {
@@ -157,6 +159,8 @@ class DicebagCommand extends commando.Command {
             }
 
             
+        }else{
+            essage.channel.send("Invalid argument: Usage is !dicebag view #");
         }
 
 

@@ -16,17 +16,20 @@ class DicetradeCommand extends commando.Command {
                 {
                     key: 'member',
                     prompt: 'Who do you want to trade with',
-                    type: 'member'
+                    type: 'member',
+                    default: ''
                 },
                 {
                     key: 'offer',
                     prompt: 'What are you offering?',
-                    type: 'string'
+                    type: 'string',
+                    default: ''
                 },
                 {
                     key: 'want',
                     prompt: 'What do you want in return?',
-                    type: 'string'
+                    type: 'string',
+                    default: ''
                 }
             ]
         });
@@ -40,6 +43,15 @@ class DicetradeCommand extends commando.Command {
         var user = member.user;
         //var db = message.guild;
         var db = this.client.provider.db;
+
+        if(member == false || want == false || offer == false){
+            var resultstring = "";
+            resultstring+= "Usage: !dicetrade @otheruser offer want\n";
+            resultstring+= "offer/want types: $100 for 100 "+currency.textPlural()+", d3 for your/their 3rd dice, i3 for your/their 3rd item";
+            message.channel.send(resultstring);
+            return;
+        }
+
         var id2 = member.id;
         var id1 = message.author.id;
         
@@ -232,7 +244,10 @@ class DicetradeCommand extends commando.Command {
                 
             }
             if(toffertype == "" || twanttype == ""){
-                message.channel.sendMessage("Invalid trade!");
+                var resultstring = "";
+                resultstring+= "Usage: !dicetrade @otheruser offer want\n";
+                resultstring+= "offer/want types: $100 for 100 "+currency.textPlural()+", d3 for your/their 3rd dice, i3 for your/their 3rd item";
+                message.channel.send(resultstring);
                 return;
             }
 

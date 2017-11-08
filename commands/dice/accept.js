@@ -19,7 +19,8 @@ class AccepttradeCommand extends commando.Command {
                 {
                     key: 'member',
                     prompt: 'Who\'s trade do you want to accept?',
-                    type: 'member'
+                    type: 'member',
+                    default:''
                 }
             ]
         });
@@ -29,6 +30,11 @@ class AccepttradeCommand extends commando.Command {
     async run(message, args) {
         const offer = args.offer;
         const member = args.member;
+
+        if(member == false){
+            message.channel.send("Usage: !accept @username");
+            return;
+        }
         const want = args.want;
         var user = member.user;
         //var db = message.guild;

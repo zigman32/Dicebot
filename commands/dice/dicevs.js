@@ -37,7 +37,11 @@ class DicevsCommand extends commando.Command {
 
         if(!argoponent)
         {
-            message.channel.send("You didn't select an oponent...");
+            var resultstring = "";
+            resultstring += "Usage: !dicevs [oponent] [extra]\n";
+            resultstring += "Valid oponent types: @username to challenge another user, :emoji: to challenge an emoji\n";
+            resultstring += "note: dicebot can only be challenged once an hour. Emoji can only be challenged once every 3 hours. Stronger emoji offer better rewards."
+            message.channel.send(resultstring);
             return;
         }
         var id1 = message.author.id;
@@ -58,7 +62,7 @@ class DicevsCommand extends commando.Command {
             var oinfo = DicevsCommand.isValidOponent(argoponent);
             if(oinfo == "null")
             {
-                message.channel.send("That's not a valid oponent...");
+                message.channel.send("That's not a valid oponent...\nValid oponent types: @username to challenge another user, :emoji: to challenge an emoji\n");
                 return;
             }//else{}
             

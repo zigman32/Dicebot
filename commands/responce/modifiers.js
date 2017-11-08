@@ -1,6 +1,4 @@
 const commando = require('discord.js-commando');
-const mydice = require('./diceclass.js');
-const misc = require('../misc.js');
 
 
 class ModifiersCommand extends commando.Command {
@@ -8,19 +6,9 @@ class ModifiersCommand extends commando.Command {
         super(client, {
             name: 'modifiers',
             aliases: ['mods','mod'],
-            group: 'dice',
+            group: 'responce',
             memberName: 'modifiers',
-            description: 'check\'s a user\'s dice',
-            args: [
-                {
-                    key: 'member',
-                    prompt: 'Who\'s dice do you want to view',
-                    type: 'member',
-                    default: ''
-
-                    
-                }
-            ]
+            description: 'view a list of modifiers'
         });
 
     }
@@ -28,16 +16,7 @@ class ModifiersCommand extends commando.Command {
     async run(message, args) {
         
 
-        const member = args.member;
-        const use = member.user;
-        var user = member.user;
-        if(!user)
-            user = message.author;
-
-        var ch = message.guild;
-
         
-        var id = user.id;
         
 
 

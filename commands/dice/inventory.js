@@ -9,7 +9,7 @@ class InventoryCommand extends commando.Command {
     constructor(client){
         super(client, {
             name: 'inventory',
-            aliases: ['inv','i','items'],
+            aliases: ['inv','i','items','item'],
             group: 'dice',
             memberName: 'inventory',
             description: 'Check your dice bag, swap your active dice, or delete a dice',
@@ -38,16 +38,15 @@ class InventoryCommand extends commando.Command {
     async run(message, args) {
         
 
-        const action = args.action;
-        const itemid = args.itemsid;
+        var action = args.action;
+        var itemid = args.itemsid;
         var id = message.author.id;
 
         var db = this.client.provider.db;
         
         if(!action)
         {
-            message.channel.sendMessage("Commands avaible: View, use, sell");
-            return;
+            action = "view"
         }
         
         if(action == "view" || action == "check"){
@@ -64,7 +63,7 @@ class InventoryCommand extends commando.Command {
                     index++;
                 }
             }
-            
+            resultstring+="\nUse !items use # to use your #th item."
             message.channel.sendMessage(resultstring);
         }
         if(action == "use" || action == "u")

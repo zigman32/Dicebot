@@ -5,7 +5,8 @@ const currency = require('../../structures/currency.js');
 const vs = require('../dice/dicevs.js');
 const dsemoji = require('discord-emoji');
 const item = require('../dice/item');
-const database = require('../../structures/database')
+const database = require('../../structures/database');
+const srandom = require('seeded-random');
 
 
 class MehCommand extends commando.Command {
@@ -50,7 +51,10 @@ class MehCommand extends commando.Command {
 
             var meta = (something == "meta");
 
-            await misc.addToInventory("scope",id,db,93);
+            message.channel.sendMessage("RAND THING: "+srandom.decimal("seedA"));
+            message.channel.sendMessage("RAND THING: "+srandom.decimal("seedA"));
+            
+            //await misc.addToInventory("scope",id,db,93);
             //await misc.addToInventory("rouletteticket",id,db,93);
             //await misc.addToInventory("poprocks",id,db,93);
             

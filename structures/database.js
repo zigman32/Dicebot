@@ -431,7 +431,7 @@ class Database {
 	}
 
 	static async getEmojiCollection(id,db){
-		var res = await db.all("SELECT EmojiName as emoji FROM EmojiCollected WHERE UserID = ? ORDER BY rowid ASC",id);
+		var res = await db.all("SELECT EmojiName as emoji FROM EmojiCollected WHERE UserID = ? AND server = \'discord\' ORDER BY rowid ASC",id);
 		var arr = [];
 		for(var i = 0;i<res.length;i++)
 		{
@@ -439,9 +439,18 @@ class Database {
 		}
 		return arr;
 	}
-	static async addToCollection(id,name,db){
+	static async getServerEmojiCollection(id,server,db){
+		var res = await db.all("SELECT EmojiName as emoji FROM EmojiCollected WHERE UserID = ? AND server = ? ORDER BY rowid ASC",id,server);
+		var arr = [];
+		for(var i = 0;i<res.length;i++)
+		{
+			arr.push(res[i].emoji);
+		}
+		return arr;
+	}
+	static async addToCollection(id,name,db,server){
 		try{
-			await db.run("INSERT INTO emojicollected(UserID,EmojiName) VALUES (?,?)",id,name);
+			await db.run("INSERT INTO emojicollected(UserID,EmojiName,server) VALUES (?,?,?)",id,name,server);
 			return true;
 		}catch(err){
 			return false;
@@ -461,9 +470,9 @@ class Database {
 		}
 		return arr;
 	}
-	static async addToEmojiDefeated(diceid,name,difficulty,db){
+	static async addToEmojiDefeated(diceid,name,difficulty,server,db){
 		try{//TODO: Improve error handling (Primary key errors are expected)
-			await db.run("INSERT INTO emojidefeated(DiceID,EmojiName) VALUES (?,?)",diceid,name);
+			await db.run("INSERT INTO emojidefeated(DiceID,EmojiName,server) VALUES (?,?,?)",diceid,name,server);
 			//return true;
 		}catch(err){
 			return false;

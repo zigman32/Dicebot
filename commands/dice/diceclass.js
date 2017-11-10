@@ -225,9 +225,16 @@ class Dice {
         }
         return left > 0;
     }
-    async addEmoji(name,difficulty,db){
+    async cheapaugment(num){
+        
+                
+        for(var i = 0;i<num;i++){
+            this.faces[Dice.rint(this.size)].value++;
+        }
+    }
+    async addEmoji(name,difficulty,db,server = "discord"){
 
-        return await Database.addToEmojiDefeated(this.id,name,difficulty,db);
+        return await Database.addToEmojiDefeated(this.id,name,difficulty,server,db);
 
         
 
@@ -293,7 +300,7 @@ class Dice {
         }
         if(dicetype.includes("emoji0"))
         {
-            SIDES = Dice.rint(3)+4;
+            SIDES = 6;
             DEFAULTSCORE = 19; //for 6 sides, if more or less, result is adjusted accordingly
             BONUSRANGE = 0;
             NUMTYPES = Dice.rint(4)+1;
@@ -303,7 +310,7 @@ class Dice {
         }
         if(dicetype.includes("emoji1"))
         {
-            SIDES = Dice.rint(3)+4;
+            SIDES = 6;
             DEFAULTSCORE = 24;
             BONUSRANGE = 5;
             NUMTYPES = Dice.rint(4)+1;
@@ -315,7 +322,7 @@ class Dice {
         }
         if(dicetype.includes("emoji2"))
         {
-            SIDES = Dice.rint(3)+4;
+            SIDES = 6;
             DEFAULTSCORE = 29;
             BONUSRANGE = 10;
             NUMTYPES = Dice.rint(4)+1;
@@ -327,10 +334,10 @@ class Dice {
         }
         if(dicetype.includes("emoji3"))
         {
-            SIDES = Dice.rint(3)+4;
+            SIDES = 6;
             DEFAULTSCORE = 50;
             BONUSRANGE = 20;
-            NUMTYPES = Dice.rint(4)+1;
+            NUMTYPES = Dice.rint(3)+2;
             MINSCORE = 0;
             modlevel = {values:["level2","level3","level4"],weights:[40,30,10]};
             modnum = {values:[0,1,2,3,4],weights:[20,40,30,20,10]};
@@ -340,16 +347,29 @@ class Dice {
         }
         if(dicetype.includes("emoji4"))
         {
-            SIDES = Dice.rint(3)+4;
+            SIDES = 6;
             DEFAULTSCORE = 80;
             BONUSRANGE = 30;
-            NUMTYPES = Dice.rint(4)+1;
-            MINSCORE = 0;
+            NUMTYPES = Dice.rint(4)+3;
+            MINSCORE = 10;
             modlevel = {values:["level1","level2","level3","level4"],weights:[5,5,20,80]};
             modnum = {values:[1,2,3,4],weights:[20,25,30,35]};
             iter = 9;
             badchance = 0;
             ultmutatechance = 0.06;
+        }
+        if(dicetype.includes("emoji5"))
+        {
+            SIDES = 6;
+            DEFAULTSCORE = 120;
+            BONUSRANGE = 30;
+            NUMTYPES = Dice.rint(4)+4;
+            MINSCORE = 15;
+            modlevel = {values:["level1","level2","level3","level4"],weights:[0,0,0,100]};
+            modnum = {values:[1,2,3,4,5],weights:[0,0,50,35,15]};
+            iter = 9;
+            badchance = 0;
+            ultmutatechance = 0.1;
         }
         if(dicetype.includes("rare0"))//common
         {
@@ -510,9 +530,9 @@ class Dice {
         if(dicetype.includes("ult1")){
 
             var theadditions = "";
-            if(Math.random() < 0.6)
+            if(Math.random() < 1.0)
                 theadditions = "u1"
-            if(Math.random() < 0.02)
+            if(Math.random() < 0.03)
                 theadditions = "u2"
             ultmutatechance = 0.07;
             bonus = {type: "ult", value: theadditions};
@@ -602,7 +622,7 @@ class Dice {
 
         dividors.sort(function(a, b) {
             return a - b;
-          });
+        });
         for(var i = 0;i<SIDES;i++){
             this.faces[i].value += dividors[i+1]-dividors[i];
         }
@@ -707,8 +727,11 @@ class Dice {
                     }
                     break;
                 case "u2":
-                    this.faces[i].value = Math.max(this.faces[i].value-3 ,1,Math.floor(this.faces[i].value*.75));
-                    this.faces[i].type = Dice.typenumtoname(18);
+                    if(Math.random() < 0.5)
+                    {
+                        this.faces[i].value = Math.max(this.faces[i].value-3 ,1,Math.floor(this.faces[i].value*.75));
+                        this.faces[i].type = Dice.typenumtoname(18);
+                    }
                     break;
             }
         }
@@ -838,7 +861,9 @@ class Dice {
         {
             num = Dice.rweights([1,2,3,4],tdist);
         }
-        
+        if(mod == "AND"){
+            typebias = -1;
+        }
 
         for(var i = 0; i<num;i++)
         {
@@ -1402,6 +1427,8 @@ class Dice {
     static toNextUpgrade(num,difficulty){
         var tarr;
         switch(difficulty){
+            case 5:
+                tarr = [1,2,3,4,5];
             case 4:
                 tarr = [1,2,3,4,5,6,7,8,9];
                 break;
@@ -1411,7 +1438,7 @@ class Dice {
                 tarr = [2,4,7,10,14,18,22,26,30,34];
                 break;
             case 1:
-                tarr = [3,6,10,14,19,24,29,34,39,44]
+                tarr = [3,6,10,14,19,24,29,34,39,44];
                 break;
             default:
                 return {upgrade: false, tonext: 0};

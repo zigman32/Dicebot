@@ -3,6 +3,7 @@ const mydice = require('./diceclass.js');
 const misc = require('../misc.js');
 const currency = require('../../structures/currency.js');
 const Database = require('../../structures/database');
+const seedrandom = require('seeded-random');
 
 
 
@@ -40,7 +41,7 @@ class DicevsCommand extends commando.Command {
             var resultstring = "";
             resultstring += "Usage: !dicevs [oponent] [extra]\n";
             resultstring += "Valid oponent types: @username to challenge another user, :emoji: to challenge an emoji\n";
-            resultstring += "note: dicebot can only be challenged once an hour. Emoji can only be challenged once every 3 hours. Stronger emoji offer better rewards."
+            resultstring += "note: Bacon can only be challenged once an hour. Other emoji can only be challenged once every 3 hours. Stronger emoji offer better rewards. Dicebot can only be challenged once a day."
             message.channel.send(resultstring);
             return;
         }
@@ -59,7 +60,7 @@ class DicevsCommand extends commando.Command {
             name2 = misc.getTrueName(id2,ch,this.client);
             otype = "user";
         }else{
-            var oinfo = DicevsCommand.isValidOponent(argoponent);
+            var oinfo = DicevsCommand.isValidOponent(argoponent,ch);
             if(oinfo == "null")
             {
                 message.channel.send("That's not a valid oponent...\nValid oponent types: @username to challenge another user, :emoji: to challenge an emoji\n");
@@ -75,7 +76,8 @@ class DicevsCommand extends commando.Command {
         if(id2 == "354242075862237184")//vs dicebot
         {
             otype = "dicebot";
-            name2 = "Dice Bot"
+            dtype = "dicebot";
+            name2 = "Dice Bot";
         }
         
         
@@ -94,20 +96,27 @@ class DicevsCommand extends commando.Command {
 
         
         
-        
         if(otype == "dicebot"){
-            var timeleft = await misc.getHourly("dicebot1",id1,db)
+            if(!(await misc.daily("dicebot1",id1,db)))
+            {
+                message.channel.send("You can only challenge dicebot once a day");
+                return;
+            }
+        }
+        if(otype == "bacon"){
+            var timeleft = await misc.getHourly("bacon1",id1,db)
             if(timeleft > 0)
             {
-                message.channel.send("You have challenged me too recently. You will have to wait another "+Math.floor(timeleft/1000/60)+" minutes.");
+                message.channel.send("You have challenged Bacon too recently, you must wait "+Math.floor(timeleft/1000/60)+" minutes.");
                 return;
             }
             //console.log("Setting hourly");
-            await misc.setHourly("dicebot1",1,id1,db);
+            await misc.setHourly("bacon1",1,id1,db);
         }
-        if(otype == "emoji1" || otype == "emoji2" || otype == "emoji3" || otype == "emoji4" || otype == "gun" || otype == "game_die"){
+        
+        if( otype.includes("emoji") || otype == "emoji1" || otype == "emoji2" || otype == "emoji3" || otype == "emoji4" || otype == "gun" || otype == "game_die"){
             var timeleft = await misc.getHourly("emojibattle1",id1,db);
-            if( timeleft > 0)
+            if(timeleft > 0)
             {
                 message.channel.send("You can only challenge an emoji once every 3 hours. You will have to wait another "+Math.floor(timeleft/1000/60)+" minutes.");
                 return;
@@ -146,7 +155,7 @@ class DicevsCommand extends commando.Command {
 
     }
 
-    static isValidOponent(string){
+    static isValidOponent(string,ch = null){
         
         var emoji = misc.getEmoji(string);
         
@@ -189,6 +198,12 @@ class DicevsCommand extends commando.Command {
                 myotype = "gun";
                 mydtype = "gun";
             }
+            if(emojiname == "bacon")
+            {
+                myotype = "bacon";
+                mydtype = "bacon";
+            }
+            
             /*if(emojiname == "gift")
             {
                 otype = "gift";
@@ -259,6 +274,16 @@ class DicevsCommand extends commando.Command {
             
             return {name:string,id:emojiname,otype:myotype,dtype:mydtype};
         }
+        if(ch != null){
+            for (var [key, value] of ch.emojis) {
+                if(string == value){
+                    console.log("WE GOT A MATCH: "+value);
+                    var difficulty = seedrandom.range('thisisaseed', 4, 5);
+
+                    return {name:value,id:key+"|"+ch.id,otype:"serveremoji"+difficulty,dtype:"emoji"+difficulty,server:ch}
+                }
+              }
+        }
         
         return "null";
     }
@@ -266,11 +291,6 @@ class DicevsCommand extends commando.Command {
     getPreDialogue(oid,uid,oname,uname,otype,db){
         var resultstring = "";
         switch(otype){
-            /* case "dicebot":
-                resultstring = resultstring+= oname + " :slight_smile:\n";
-                resultstring = resultstring+= oname + " :handshake:\n";
-                resultstring = resultstring+= oname + " :crossed_swords:\n\n";
-                break; */
             case "gun":
                 resultstring = resultstring+= "DRAW!\n\n";
                 break;
@@ -291,6 +311,8 @@ class DicevsCommand extends commando.Command {
         var difficulty;
         var toupgrade;
         var repgain;
+        var upgradeval = 1;
+        var doserver = false;
 
         var oswitch = otype;
 
@@ -314,9 +336,19 @@ class DicevsCommand extends commando.Command {
                 oswitch = "emoji";
                 break;
             case "emoji4":
+            case "serveremoji4":
                 prizemoney = 4000;
                 difficulty = 4;
                 repgain = 50;
+                doserver = true;
+                oswitch = "emoji";
+                break;
+            case "serveremoji5":
+                prizemoney = 10000;
+                difficulty = 5;
+                upgradeval = 2;
+                repgain = 80;
+                doserver = true;
                 oswitch = "emoji";
                 break;
             case "gun":
@@ -341,7 +373,13 @@ class DicevsCommand extends commando.Command {
             
             
         }
-
+        var servername = "discord";
+        if(doserver)
+        {
+            var chips = oid.split("|");
+            oid = chips[0];
+            servername = chips[1];
+        }
 
 
         switch(oswitch){
@@ -373,8 +411,8 @@ class DicevsCommand extends commando.Command {
                     var upgradeinfo = mydice.toNextUpgrade(myemojicount,difficulty);
                     if(upgradeinfo.upgrade)
                     {
-                        await ddice.augment(1,db,"emoji"+difficulty,MAXEACHDIFFICULTY);
-                        resultstring+= ":sparkles:For defeating "+myemojicount+" unique level "+difficulty+" emojis, your dice has gained gained 1 point!:sparkles:\n";
+                        await ddice.augment(upgradeval,db,"emoji"+difficulty,servername,MAXEACHDIFFICULTY);
+                        resultstring+= ":sparkles:For defeating "+myemojicount+" unique level "+difficulty+" emojis, your dice has gained gained "+upgradeval+" point!:sparkles:\n";
                     
                     }
                     if(upgradeinfo.tonext != 0)
@@ -390,7 +428,7 @@ class DicevsCommand extends commando.Command {
                     if(!col.includes(oid))
                     {   
                         resultstring+= "Oponent has been added to your collection! (view your collection with the !collection command)\n";
-                        await misc.addToCollection(oid,uid,db);
+                        await misc.addToCollection(oid,uid,db,servername);
                     }
                 }
                 resultstring = resultstring+= "Streak: "+consecutive+"\n";
@@ -400,47 +438,30 @@ class DicevsCommand extends commando.Command {
 
                 
                 break;
-            case "dicebot":
-                resultstring = resultstring+= "Gratz on defeating me! Have some money!\n";
-                resultstring = resultstring+=  "*Dice Bot has given you 70 "+currency.textPlural()+" as a reward for your victory*\n";
+            case "bacon":
+                
+            resultstring = resultstring+= "Congratulations! You defeated Bacon!\n";
+            resultstring = resultstring+=  "You earned 70 "+currency.textPlural()+"\n";
                 await currency.addMoney(uid,70,db);
                 var repgain = 3;
                 resultstring = resultstring+= "You have gained "+repgain+" reputation!\n\n";
                 await currency.addReputation(repgain,uid,db);
-
-                //NO DOING THIS YET BECAUSE BUGGY AND ANNOYING
-                /*
-                misc.upConsecutive("dice_dicebotvictory",uid,db);
-
-                var diceba = misc.getormakedice(uid,db);
-                var con = misc.getConsecutive("dice_dicebotvictory",uid,db)
-                if(con == 2)
+                break;
+            case "dicebot":
+                resultstring = resultstring+= "Congratulations! You defeated The Dice Bot!\n";
+                resultstring = resultstring+= "You have gained 2000 "+currency.textPlural()+"!\n";
+                resultstring = resultstring+= "You have gained 30 reputation!\n";
+                await currency.addMoney(uid,2000,db);
+                await currency.addReputation(30,uid,db);
+                var windice = await misc.getormakedice(uid,db);
+                if(await windice.getBoosts("dicebot1",db) < 3)
                 {
-                    if(diceba.getBoosts("dicebot1")<1){
-                        resultstring = resultstring+=  "*To celebrate your first time defeating Dice Bot twice in a row(with that particular dice), Dice Bot has upgraded your dice, making it slightly stronger.*\n\n";
-                        var dicea = misc.getormakedice(uid,db);
-                        dicea.augment(1,"dicebot1",2);
-                        misc.setdice(dicea,uid,db);
-                        db.settings.set("DICE_dicebotcons2_"+uid,true)
-                    }
-
-                }
-                if(con == 3)
-                {
-                    if(diceba.getBoosts("dicebot1")<2){
-                        resultstring = resultstring+=  oid + " :sunglasses:\n";
-                        resultstring = resultstring+=  oid + " :sparkles:\n";
-                        resultstring = resultstring+=  "*To celebrate your first time defeating Dice Bot three times in a row(with that particular dice), Dice Bot has blessed your dice again, enhancing it further.*\n\n";
-                        var dicea = misc.getormakedice(uid,db);
-                        dicea.augment(1,"dicebot1",2);
-                        misc.setdice(dicea,uid,db);
-                        db.settings.set("DICE_dicebotcons3_"+uid,true)
-                    }
+                    resultstring = resultstring+= "The Dice Bot has blessed your dice, making it more powerful!\n";
+                    await windice.augment(3,db,"dicebot1",3);
                     
                 }
 
                 
-                */
                 break;
             
         }
@@ -451,10 +472,11 @@ class DicevsCommand extends commando.Command {
         var resultstring = "";
         switch(otype){
             case "user":
+            case "dicebot":
                 resultstring = resultstring+= "It was a tie! Nobody wins...\n";
                 break;
-            case "dicebot":
-                resultstring = resultstring+= "A tie? Unusual....\n";
+            case "bacon":
+                resultstring = resultstring+= "It was a tie! Nobody wins...\n"; 
                 var repgain = 1;
                 resultstring = resultstring+= "You have gained "+repgain+" reputation!\n\n";
                 await currency.addReputation(repgain,uid,db);
@@ -485,8 +507,8 @@ class DicevsCommand extends commando.Command {
             case "user":
                 resultstring = resultstring+= "You lost...\n";
                 break;
-            case "dicebot":
-                resultstring = resultstring+= "You lost... how dissapointing.\n\n";
+            case "bacon":
+                resultstring = resultstring+= "You lost...\n";
                 //misc.breakConsecutive("dice_dicebotvictory",uid,db);
                 break;
             case "emoji1":
@@ -502,7 +524,10 @@ class DicevsCommand extends commando.Command {
                 await currency.addReputation(repgain,uid,db);
                 
                 break;
-            
+            case "dicebot":
+                resultstring = resultstring+= "You lost...\n";
+                break;
+
 
             
             
@@ -513,8 +538,8 @@ class DicevsCommand extends commando.Command {
     async getPostDialogue(oid,uid,oname,uname,otype,db){
         var resultstring = "";
         switch(otype){
-            case "dicebot":
-                resultstring = resultstring+= "Thank you for the entertainment!";
+            case "bacon":
+                resultstring = resultstring+= "Thank you for playing!\n";
                 break;
             case "emoji1":
             case "emoji2":

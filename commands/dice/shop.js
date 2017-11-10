@@ -52,14 +52,21 @@ class ShopCommand extends commando.Command {
             resultstring = resultstring+"Current reputation: "+reputation+"\n\n";
             for(var i = 0;i<basicitems.length;i++){
                 if(reputation >= basicitems[i].reputationreq)
-                    resultstring = resultstring+basicitems[i].name+" ("+basicitems[i].price+" "+currency.textPlural()+"): "+basicitems[i].description+"\n\n";
+                {
+                    resultstring+= await ShopCommand.displayItem(basicitems[i],id,db)+"\n\n";
+                }
                 else
+                {
                     resultstring = resultstring+"?????("+basicitems[i].reputationreq+" reputation required)\n\n";
+                }
+                    
             }
             resultstring = resultstring+"\nSpecial items: (Changes daily)\n\n";
             for(var i = 0;i<specialitems.length;i++){
                 if(reputation >= specialitems[i].reputationreq)
-                    resultstring = resultstring+specialitems[i].name+" ("+specialitems[i].price+" "+currency.textPlural()+"): "+specialitems[i].description+"\n\n";
+                {    
+                    resultstring = resultstring+= await ShopCommand.displayItem(specialitems[i],id,db)+"\n\n";
+                }
                 else
                     resultstring = resultstring+"?????("+specialitems[i].reputationreq+" reputation required)\n\n";
                 
@@ -86,8 +93,15 @@ class ShopCommand extends commando.Command {
                         message.channel.send("You can't afford that item. You need "+items[i].price+" "+currency.textPlural());
                     }else
                     {
-                        currency.removeMoney(id,items[i].price,db);
-                        items[i].use(id,db,message);
+                        if(await items[i].stockLeft(id,db) == 0)
+                        {
+                            message.channel.send("That item is out of stock!");
+                        }else{
+                            currency.removeMoney(id,items[i].price,db);
+                            await items[i].reduceStock(id,db);
+                            items[i].use(id,db,message);
+                        }
+                        
                     }
 
 
@@ -180,18 +194,22 @@ class ShopCommand extends commando.Command {
         var odds = 0.33;
         if(rng()<odds)
         {
-            var biastype;
-            if(rng() < 0.02)
-                biastype = 18;//ultimate type
-            else
-                biastype = Math.floor(rng()*18);
+            for(var k = 0;k<3;k++)
+            {
+                var biastype;
+                if(rng() < 0.03)
+                    biastype = 18;//ultimate type
+                else
+                    biastype = Math.floor(rng()*18);
 
-            var biasname = Dice.typenumtoname(biastype);
-            titems.push(new shopitem(ShopCommand.capitalizeFirstLetter(biasname)+" Hate Pack",550,"Do you hate "+ShopCommand.capitalizeFirstLetter(biasname)+" types? Then this is the pack for you.",async function(id,db,message,bonus){
-                             
-                ShopCommand.genericPack(["rare0","rare0_TYPEBIAS1/"+biastype,"rare1_TYPEBIAS2/"+biastype,"rare2_TYPEBIAS2/"+biastype],[30,50,15,5],3,id,db,message);
-                                    
-            },180));
+                var biasname = Dice.typenumtoname(biastype);
+                titems.push(new shopitem(ShopCommand.capitalizeFirstLetter(biasname)+" Hate Pack",550,"Do you hate "+ShopCommand.capitalizeFirstLetter(biasname)+" types? Then this is the pack for you.",async function(id,db,message,bonus){
+                                
+                    ShopCommand.genericPack(["rare0","rare0_TYPEBIAS1/"+biastype,"rare1_TYPEBIAS2/"+biastype,"rare2_TYPEBIAS2/"+biastype],[30,40,30,10],3,id,db,message);
+                                        
+                },180,5,7));
+            }
+            
 
 
         }
@@ -203,16 +221,16 @@ class ShopCommand extends commando.Command {
             
             titems.push(new shopitem("Glowing Pack",5000,"Mostly commons and rares in here, but if you get lucky...",async function(id,db,message,bonus){
                 ShopCommand.genericPack(["rare0","rare1","rare4"],[87,10,3],3,id,db,message);                   
-            },2000));
+            },2000,9,12));
         }
         //-----------------
         var odds = 0.2;
         if(rng()<odds)
         {  
-            titems.push(new shopitem("Survivor pack",1300,"There are some things you just can't defeat. At least, untill you buy this pack.",async function(id,db,message,bonus){
+            titems.push(new shopitem("Survivor pack",1500,"There are some things you just can't defeat. At least, untill you buy this pack.",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0","rare1","rare2","rare0_STURDY1","rare1_STURDY1","rare2_STURDY1","rare0_STURDY_ALL","rare1_STURDY_ALL","rare2_STURDY_ALL"],[80*12,20*12,5*12,80*6,20*6,5*6,80*1,20*1,5*1],3,id,db,message);               
-            },200));
+                ShopCommand.genericPack(["rare0","rare1","rare2","rare0_STURDY1","rare1_STURDY1","rare2_STURDY1"],[60,30,10,60,30,10],3,id,db,message);               
+            },200,3,8));
         }
         //-----------------
         var odds = 0.3;
@@ -221,25 +239,25 @@ class ShopCommand extends commando.Command {
             titems.push(new shopitem("Slim pack",300,"Damn, these dice are SLIM.",async function(id,db,message,bonus){
                              
                 ShopCommand.genericPack(["slim1","slim2"],[95,5],3,id,db,message);               
-            },100));
+            },100,3,9));
         }
 
         var odds = 0.1;
         if(rng()<odds)//TODO
         {  
-            titems.push(new shopitem("Advantageous Pack",5000,"Give yourself that little bit of extra advantage.",async function(id,db,message,bonus){
+            titems.push(new shopitem("Advantageous Pack",4000,"Give yourself that little bit of extra advantage.",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0_adv1","rare1_adv1","rare2_adv1","rare3_adv1"],[30,57,10,3],3,id,db,message);               
-            },1400));
+                ShopCommand.genericPack(["rare0_adv1","rare1_adv1","rare2_adv1","rare3_adv1"],[0,75,20,5],3,id,db,message);               
+            },1400,3,6));
         }
 
-        var odds = 0.05;
+        var odds = 0.075;
         if(rng()<odds)
         {  
-            titems.push(new shopitem("Ultimate type pack",8000,"Are you sick of loosing type matchups?",async function(id,db,message,bonus){
+            titems.push(new shopitem("Ultimate type pack",7000,"Are you sick of loosing type matchups?",async function(id,db,message,bonus){
                              
-                ShopCommand.genericPack(["rare0_ult1","rare1_ult1","rare2_ult1","rare3_ult1"],[30,57,10,3],3,id,db,message);               
-            },2000));
+                ShopCommand.genericPack(["rare0_ult1","rare1_ult1","rare2_ult1","rare3_ult1"],[0,75,20,5],3,id,db,message);               
+            },2000,2,3));
         }
 
         var odds = 0.1;
@@ -248,7 +266,7 @@ class ShopCommand extends commando.Command {
             titems.push(new shopitem("Weighted dice pack",1200,"These dice seem a bit... lopsided. That's probably a good thing though... right?",async function(id,db,message,bonus){
                              
                 ShopCommand.genericPack(["rare0_wgt1","rare1_wgt1","rare2_wgt1"],[63,30,7],3,id,db,message);               
-            },600));
+            },600,5,7));
         }
         
 
@@ -358,6 +376,26 @@ class ShopCommand extends commando.Command {
 
         //-----------end basic dice pack code
         
+    }
+
+    static async displayItem(item,uid,db){
+        var resultstring = "";
+
+        var stock = await item.stockLeft(uid,db);
+        if(stock != -1)
+        {
+            if(stock != 0)
+            {
+                resultstring+= "(Stock: "+stock+") ";
+            }else{
+                resultstring += "(Stock: SOLD OUT!) ";
+            }
+        }
+        resultstring+= item.name+" ("+item.price+" "+currency.textPlural()+")";
+        
+        resultstring+=": "+item.description;
+        
+        return resultstring;
     }
 }
 

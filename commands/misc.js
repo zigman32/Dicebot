@@ -67,11 +67,42 @@ class Misc {
         
 
 
+        if(dtype == "bacon"){
+            
+            
+            var dice = new Dice();
+            dice.setFaces([{
+                type:"fire",value:2},{
+                type:"water",value:3},{
+                type:"grass",value:4},{
+                type:"fire",value:4},{
+                type:"water",value:3},{
+                type:"grass",value:2}]);
+            return dice;
+        }
         if(dtype == "dicebot"){
             
             
             var dice = new Dice();
-            dice.generate("emoji0");
+            dice.setFaces([{
+                type:"normal",value:10,},{
+                type:"fighting",value:10,},{
+                type:"flying",value:10,},{
+                type:"poison",value:10,},{
+                type:"ground",value:10,},{
+                type:"rock",value:10,},{
+                type:"bug",value:10,},{
+                type:"ghost",value:10,},{
+                type:"steel",value:10,},{
+                type:"fire",value:10,},{
+                type:"water",value:10,},{
+                type:"grass",value:10,},{
+                type:"electric",value:10,},{
+                type:"psychic",value:10,},{
+                type:"ice",value:10,},{
+                type:"dragon",value:10,},{
+                type:"dark",value:10,},{
+                type:"fairy",value:10}]);
             return dice;
         }
         if(dtype == "gun")
@@ -105,8 +136,8 @@ class Misc {
     }
 
     
-    static addToCollection(item,id,db){
-        return Database.addToCollection(id,item,db);
+    static addToCollection(item,id,db,server = "discord"){
+        return Database.addToCollection(id,item,db,server);
     }
 
     static async getDicebag(id,db){
